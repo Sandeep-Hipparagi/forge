@@ -12,7 +12,9 @@
     "@fastify/sensible": "^6.0.3",
     "@forge/core": "workspace:*",
     "@forge/orchestrator": "workspace:*",
-    "fastify": "^5.2.0"
+    "@forge/store": "workspace:*",
+    "fastify": "^5.2.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "tsx": "^4.19.2"

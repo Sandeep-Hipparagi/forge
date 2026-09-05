@@ -4,6 +4,12 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "references": [{ "path": "../core" }, { "path": "../orchestrator" }],
+  "references": [
+    { "path": "../agents/harness" },
+    { "path": "../../apps/api" },
+    { "path": "../core" },
+    { "path": "../orchestrator" },
+    { "path": "../store" }
+  ],
   "include": ["src"]
 }

@@ -1,6 +1,6 @@
 # 05 · Data Model
 
-> **Single source of truth:** the Zod schemas in `packages/core/schema/`. TypeScript types are *inferred* from them (`z.infer`), never hand-written in parallel. The SQLite DDL mirrors them.
+> **Single source of truth:** the Zod schemas in `packages/core/schema/`. TypeScript types are _inferred_ from them (`z.infer`), never hand-written in parallel. The SQLite DDL mirrors them.
 > **Rule:** if a shape appears in an API response, a model's structured output, and a database row, it is declared **once**, here.
 > **Frozen at the end of Ph1.** One Zod edit after that invalidates work in three places at once ([00 · Work Plan §5](../00-work-plan.md)).
 > **This document owns:** the `I-n` invariant IDs and the ID prefix table.
@@ -31,8 +31,8 @@ Session 1──* SessionEvent                     (append-only, gapless seq — 
 
 Three relationships carry real weight and are worth reading twice:
 
-- **`TestPlan` is versioned by round, not overwritten.** Round 0 is the plan the Critic rejected. Keeping it is what lets the dashboard show *"here is what it planned, here is what the Critic said, here is what it planned next"* — the demo beat that earns the innovation weight. A model that overwrites round 0 destroys the evidence for `S-2`.
-- **`ElementFingerprint` belongs to a `(scenarioId, stepId)` pair, not to a run.** Runs *append* fingerprints; healing *reads across all of them*. That history is what makes `historicalSimilarity` meaningful on the second and third heal of the same element (`FR-711`).
+- **`TestPlan` is versioned by round, not overwritten.** Round 0 is the plan the Critic rejected. Keeping it is what lets the dashboard show _"here is what it planned, here is what the Critic said, here is what it planned next"_ — the demo beat that earns the innovation weight. A model that overwrites round 0 destroys the evidence for `S-2`.
+- **`ElementFingerprint` belongs to a `(scenarioId, stepId)` pair, not to a run.** Runs _append_ fingerprints; healing _reads across all of them_. That history is what makes `historicalSimilarity` meaningful on the second and third heal of the same element (`FR-711`).
 - **`Lap` owns the counters.** `replanRounds` and `healAttempts` live on the lap, not in a variable in a loop, because `FR-903` requires a mid-run restart to resume with the caps already spent. A counter in memory is a counter that resets when the process does.
 
 ---
@@ -52,7 +52,10 @@ export const Severity = z.enum(["INFO", "MINOR", "MAJOR", "BLOCKER"]);
 export const Priority = z.enum(["P0", "P1", "P2", "P3"]);
 
 export const BBox = z.object({
-  x: z.number(), y: z.number(), w: z.number(), h: z.number(),
+  x: z.number(),
+  y: z.number(),
+  w: z.number(),
+  h: z.number(),
 });
 
 export const Viewport = z.object({
@@ -69,27 +72,41 @@ export const Viewport = z.object({
 export const SessionMode = z.enum(["autopilot", "copilot"]);
 
 export const SessionInput = z.object({
-  url: z.string().url(),                                  // FR-001 — the ONLY required field
+  url: z.string().url(), // FR-001 — the ONLY required field
   username: z.string().optional(),
-  password: z.string().optional(),                        // never persisted — FR-006
-  prd: z.string().max(200_000).optional(),                // FR-004
-  intent: z.string().max(2_000).optional(),               // FR-005
-  mode: SessionMode.default("autopilot"),                 // FR-007
-  budget: z.object({                                      // FR-008
-    maxCapabilities: z.number().int().positive().default(20),
-    maxDurationMs: z.number().int().positive().default(30 * 60_000),
-    maxUsd: z.number().positive().default(2.0),
-  }).default({}),
+  password: z.string().optional(), // never persisted — FR-006
+  prd: z.string().max(200_000).optional(), // FR-004
+  intent: z.string().max(2_000).optional(), // FR-005
+  mode: SessionMode.default("autopilot"), // FR-007
+  budget: z
+    .object({
+      // FR-008
+      maxCapabilities: z.number().int().positive().default(20),
+      maxDurationMs: z
+        .number()
+        .int()
+        .positive()
+        .default(30 * 60_000),
+      maxUsd: z.number().positive().default(2.0),
+    })
+    .default({}),
 });
 
 export const SessionStatus = z.enum([
-  "CREATED", "EXPLORING", "PRIORITISING", "LAPPING", "REPORTING",
-  "COMPLETED", "COMPLETED_PARTIAL", "ESCALATED", "ERROR",              // FR-904
+  "CREATED",
+  "EXPLORING",
+  "PRIORITISING",
+  "LAPPING",
+  "REPORTING",
+  "COMPLETED",
+  "COMPLETED_PARTIAL",
+  "ESCALATED",
+  "ERROR", // FR-904
 ]);
 
 export const Session = z.object({
   id: Id,
-  input: SessionInput.omit({ password: true }),   // the password never reaches this object
+  input: SessionInput.omit({ password: true }), // the password never reaches this object
   status: SessionStatus,
   authenticated: z.boolean().default(false),
   storageStatePath: z.string().nullable().default(null),
@@ -97,11 +114,15 @@ export const Session = z.object({
   defectsFound: z.number().int().nonnegative().default(0),
   createdAt: Iso,
   finishedAt: Iso.nullable(),
-  usage: z.object({
-    inputTokens: z.number().int(), outputTokens: z.number().int(),
-    cacheReadTokens: z.number().int(), calls: z.number().int(),
-    estimatedUsd: z.number(),
-  }).nullable(),
+  usage: z
+    .object({
+      inputTokens: z.number().int(),
+      outputTokens: z.number().int(),
+      cacheReadTokens: z.number().int(),
+      calls: z.number().int(),
+      estimatedUsd: z.number(),
+    })
+    .nullable(),
 });
 ```
 
@@ -114,15 +135,24 @@ The algorithms behind these live in [08 · Perception Layer](08-perception-layer
 ```ts
 // packages/core/schema/perception.ts
 export const AffordanceKind = z.enum([
-  "button", "link", "textbox", "checkbox", "radio", "select",
-  "tab", "menuitem", "form", "upload", "other",
+  "button",
+  "link",
+  "textbox",
+  "checkbox",
+  "radio",
+  "select",
+  "tab",
+  "menuitem",
+  "form",
+  "upload",
+  "other",
 ]);
 
 export const Affordance = z.object({
   id: Id,
   stateId: Id,
-  ref: z.string(),                       // snapshot-local handle, e.g. "e42"
-  role: z.string(),                      // ARIA role
+  ref: z.string(), // snapshot-local handle, e.g. "e42"
+  role: z.string(), // ARIA role
   accessibleName: z.string().nullable(),
   kind: AffordanceKind,
   enabled: z.boolean().default(true),
@@ -142,7 +172,7 @@ export const State = z.object({
   url: z.string(),
   title: z.string(),
   authRequired: z.boolean().default(false),
-  snapshotEvidenceId: Id,                // the accessibility snapshot, content-addressed
+  snapshotEvidenceId: Id, // the accessibility snapshot, content-addressed
   affordanceIds: z.array(Id),
   /** How many raw pages collapsed into this state — a 50-page list is one state. */
   visitedVariants: z.number().int().positive().default(1),
@@ -164,44 +194,53 @@ export const Transition = z.object({
 
 ```ts
 export const RiskFactors = z.object({
-  authProximity: Confidence,     // how close to the authenticated boundary
-  dataMutation: Confidence,      // does it write
-  moneyOrPii: Confidence,        // does it touch money or personal data
-  graphCentrality: Confidence,   // how many flows pass through it
+  authProximity: Confidence, // how close to the authenticated boundary
+  dataMutation: Confidence, // does it write
+  moneyOrPii: Confidence, // does it touch money or personal data
+  graphCentrality: Confidence, // how many flows pass through it
   affordanceDensity: Confidence, // how much surface area
-  statedIntent: Confidence,      // did the user ask for it — FR-005
+  statedIntent: Confidence, // did the user ask for it — FR-005
 });
 
 export const Capability = z.object({
   id: Id,
   sessionId: Id,
-  name: z.string().min(2),               // "Checkout" — user-meaningful, not a route
+  name: z.string().min(2), // "Checkout" — user-meaningful, not a route
   description: z.string().min(10),
   entryStateId: Id,
   stateIds: z.array(Id).min(1),
-  exitConditions: z.array(z.string()).min(1),          // FR-105
-  dependsOn: z.array(Id).default([]),                  // ADR-012 A1
+  exitConditions: z.array(z.string()).min(1), // FR-105
+  dependsOn: z.array(Id).default([]), // ADR-012 A1
   risk: z.object({ score: Confidence, factors: RiskFactors }),
-  priorityRank: z.number().int().nonnegative(),        // backlog order — deterministic
+  priorityRank: z.number().int().nonnegative(), // backlog order — deterministic
 });
 
 export const CapabilityMap = z.object({
   sessionId: Id,
   authenticated: z.boolean(),
   states: z.array(State),
+  affordances: z.array(Affordance), // required for I-13 ref grounding
   transitions: z.array(Transition),
   capabilities: z.array(Capability),
-  apiHints: z.array(z.object({            // FR-110
-    method: z.string(), urlPattern: z.string(), seenInStateIds: z.array(Id),
-  })).default([]),
+  apiHints: z
+    .array(
+      z.object({
+        // FR-110
+        method: z.string(),
+        urlPattern: z.string(),
+        seenInStateIds: z.array(Id),
+      }),
+    )
+    .default([]),
   frontier: z.object({
-    discovered: z.number().int(), explored: z.number().int(),
+    discovered: z.number().int(),
+    explored: z.number().int(),
     haltReason: z.enum(["EXHAUSTED", "STATE_BUDGET", "TIME_BUDGET", "CALL_BUDGET"]),
-  }),                                                  // FR-107
+  }), // FR-107
 });
 ```
 
-> **`haltReason` is not diagnostics — it is a report field.** Exploration always terminates, and *why* it stopped changes what the untested-flow risk section is allowed to claim. A map that halted on `EXHAUSTED` supports "we have seen the application"; one that halted on `STATE_BUDGET` supports only "we have seen this much of it", and the report must say the difference out loud (`FR-804`).
+> **`haltReason` is not diagnostics — it is a report field.** Exploration always terminates, and _why_ it stopped changes what the untested-flow risk section is allowed to claim. A map that halted on `EXHAUSTED` supports "we have seen the application"; one that halted on `STATE_BUDGET` supports only "we have seen this much of it", and the report must say the difference out loud (`FR-804`).
 
 ### 2.5 TestPlan, Scenario, TestStep
 
@@ -210,25 +249,32 @@ export const CapabilityMap = z.object({
 ```ts
 // packages/core/schema/plan.ts
 export const StepKind = z.enum([
-  "navigate", "click", "fill", "select", "press", "hover",
-  "waitFor", "assertText", "assertVisible", "assertUrl", "assertCount",
+  "navigate",
+  "click",
+  "fill",
+  "select",
+  "press",
+  "hover",
+  "waitFor",
+  "assertText",
+  "assertVisible",
+  "assertUrl",
+  "assertCount",
 ]);
 
 /** Truth claims. Steps of these kinds are NEVER healed. See FR-705, veto V1. */
-export const ASSERTION_KINDS = [
-  "assertText", "assertVisible", "assertUrl", "assertCount",
-] as const;
+export const ASSERTION_KINDS = ["assertText", "assertVisible", "assertUrl", "assertCount"] as const;
 
 export const TestStep = z.object({
-  id: z.string().regex(/^s\d+$/),        // scenario-local: s1, s2, …
+  id: z.string().regex(/^s\d+$/), // scenario-local: s1, s2, …
   order: z.number().int().nonnegative(),
   kind: StepKind,
   /** Human-language purpose. Survives every refactor. The anchor for healing. */
   targetIntent: z.string().min(3).max(160),
   /** FR-204 — grounding. Both must resolve in the CapabilityMap or validation fails. */
   stateId: Id,
-  affordanceRef: z.string().nullable(),  // null only for `navigate`
-  locator: z.string().nullable(),        // written by the compiler, not the model
+  affordanceRef: z.string().nullable(), // null only for `navigate`
+  locator: z.string().nullable(), // written by the compiler, not the model
   input: z.string().nullable(),
   timeoutMs: z.number().int().default(5000),
   optional: z.boolean().default(false),
@@ -240,42 +286,44 @@ export const TestStep = z.object({
 export const ScenarioClass = z.enum(["happy", "negative", "boundary", "error_state"]);
 
 export const Scenario = z.object({
-  id: z.string().regex(/^SC-\d{3,}$/),   // stable across re-planning — FR-205
+  id: z.string().regex(/^SC-\d{3,}$/), // stable across re-planning — FR-205
   planId: Id,
   title: z.string().min(5),
-  class: ScenarioClass,                                  // FR-203
+  class: ScenarioClass, // FR-203
   priority: Priority,
-  priorityReason: z.string().max(120),                   // FR-206
+  priorityReason: z.string().max(120), // FR-206
   preconditions: z.array(z.string()).default([]),
   steps: z.array(TestStep).min(1),
   expectedOutcome: z.string().min(5),
   source: z.enum(["agent", "prd", "intent", "critic_gap", "human"]).default("agent"),
-  sourceRefs: z.array(z.string()).default([]),           // PRD section ids — FR-207
+  sourceRefs: z.array(z.string()).default([]), // PRD section ids — FR-207
   /** Planned but deliberately not generated — destructive on a non-disposable target. */
   plannedNotGenerated: z.boolean().default(false),
-  notGeneratedReason: z.string().nullable().default(null),   // FR-209
-  version: z.number().int().positive().default(1),       // bumps on an accepted patch
+  notGeneratedReason: z.string().nullable().default(null), // FR-209
+  version: z.number().int().positive().default(1), // bumps on an accepted patch
 });
 
 export const TestPlan = z.object({
   id: Id,
   lapId: Id,
   capabilityId: Id,
-  round: z.number().int().min(0).max(2),                 // 0 = first attempt — FR-305
+  round: z.number().int().min(0).max(2), // 0 = first attempt — FR-305
   scenarios: z.array(Scenario).min(1),
-  markdownPath: z.string(),                              // FR-202 — the human artefact
+  markdownPath: z.string(), // FR-202 — the human artefact
   createdAt: Iso,
 });
 ```
 
-> **Why the Markdown is a path, not a field.** `FR-202` requires a human-readable plan *and* canonical JSON, generated from one source. The JSON is the source; the Markdown is a rendering, written to disk and hashed as evidence. Storing both in the row invites them to drift apart — and the first time they disagree, nobody can tell which one the tests came from.
+> **Why the Markdown is a path, not a field.** `FR-202` requires a human-readable plan _and_ canonical JSON, generated from one source. The JSON is the source; the Markdown is a rendering, written to disk and hashed as evidence. Storing both in the row invites them to drift apart — and the first time they disagree, nobody can tell which one the tests came from.
 
 ### 2.6 CoverageAssessment — the brief's hard MUST
 
 ```ts
 // packages/core/schema/critique.ts
 export const GapClass = z.enum([
-  "MISSING_FLOW", "MISSING_EDGE_CASE", "MISSING_ERROR_STATE",   // the brief's three — FR-302
+  "MISSING_FLOW",
+  "MISSING_EDGE_CASE",
+  "MISSING_ERROR_STATE", // the brief's three — FR-302
 ]);
 
 export const Gap = z.object({
@@ -283,9 +331,9 @@ export const Gap = z.object({
   class: GapClass,
   title: z.string().max(120),
   why: z.string().max(400),
-  severity: Severity,                    // BLOCKER blocks the transition — TG-5b
+  severity: Severity, // BLOCKER blocks the transition — TG-5b
   suggestedScenario: z.string().max(400),
-  affordanceRefs: z.array(z.string()).default([]),   // what evidence says it exists
+  affordanceRefs: z.array(z.string()).default([]), // what evidence says it exists
 });
 
 export const CoverageAssessment = z.object({
@@ -295,8 +343,9 @@ export const CoverageAssessment = z.object({
   round: z.number().int().min(0).max(2),
   /** [0,1], reproducible from stored inputs. Algorithm in 11 §3. FR-303 */
   score: Confidence,
-  floor: Confidence,                     // the threshold in force for this run
-  structural: z.object({                 // the deterministic half — no model
+  floor: Confidence, // the threshold in force for this run
+  structural: z.object({
+    // the deterministic half — no model
     affordancesExercised: z.number().int(),
     affordancesTotal: z.number().int(),
     transitionsTraversed: z.number().int(),
@@ -305,13 +354,20 @@ export const CoverageAssessment = z.object({
     statesTotal: z.number().int(),
     classesPresent: z.array(ScenarioClass),
   }),
-  gaps: z.array(Gap),                                  // FR-302
-  residualGaps: z.array(Gap).default([]),              // FR-306 — present even on a pass
-  prdGaps: z.array(z.object({                          // FR-307 — the brief's Bonus B1
-    requirement: z.string(), prdSectionRef: z.string(), severity: Severity,
-  })).default([]),
+  gaps: z.array(Gap), // FR-302
+  residualGaps: z.array(Gap).default([]), // FR-306 — present even on a pass
+  prdGaps: z
+    .array(
+      z.object({
+        // FR-307 — the brief's Bonus B1
+        requirement: z.string(),
+        prdSectionRef: z.string(),
+        severity: Severity,
+      }),
+    )
+    .default([]),
   verdict: z.enum(["PASS", "REPLAN", "ACCEPT_RISK"]),
-  source: z.enum(["deterministic", "llm", "llm+deterministic"]),   // FR-308
+  source: z.enum(["deterministic", "llm", "llm+deterministic"]), // FR-308
   createdAt: Iso,
 });
 ```
@@ -322,25 +378,40 @@ export const CoverageAssessment = z.object({
 
 ```ts
 export const LapStatus = z.enum([
-  "LAP_PENDING", "PLANNING", "CRITIQUING", "GENERATING", "RUNNING",
-  "TRIAGING", "DECIDING", "HEALING", "VERIFYING", "BANKED",
+  "LAP_PENDING",
+  "PLANNING",
+  "CRITIQUING",
+  "GENERATING",
+  "RUNNING",
+  "TRIAGING",
+  "DECIDING",
+  "HEALING",
+  "VERIFYING",
+  "BANKED",
 ]);
 
+// BANKING and ESCALATING in the architecture diagram are operations, not
+// persisted statuses. Their result is one BANKED row with exactly one outcome.
+
 export const LapOutcome = z.enum([
-  "VERIFIED", "DEFECT_FOUND", "ESCALATED", "PARTIAL", "LAP_FAILED",
+  "VERIFIED",
+  "DEFECT_FOUND",
+  "ESCALATED",
+  "PARTIAL",
+  "LAP_FAILED",
 ]);
 
 export const Lap = z.object({
   id: Id,
   sessionId: Id,
   capabilityId: Id,
-  index: z.number().int().nonnegative(),           // backlog position, 0-based
+  index: z.number().int().nonnegative(), // backlog position, 0-based
   status: LapStatus,
   outcome: LapOutcome.nullable(),
-  replanRounds: z.number().int().min(0).max(2),                 // FR-305 · I-12
-  healAttempts: z.record(z.string(), z.number().int()),         // stepId → attempts · FR-708
+  replanRounds: z.number().int().min(0).max(2), // FR-305 · I-12
+  healAttempts: z.record(z.string(), z.number().int()), // stepId → attempts · FR-708
   acceptedRisk: z.array(Gap).default([]),
-  specPath: z.string().nullable(),                 // the banked file — FR-405
+  specPath: z.string().nullable(), // the banked file — FR-405
   startedAt: Iso,
   bankedAt: Iso.nullable(),
 });
@@ -350,8 +421,13 @@ export const Lap = z.object({
 
 ```ts
 export const RunStatus = z.enum([
-  "QUEUED", "RUNNING", "VERIFIED", "FAIL_WITH_EVIDENCE",
-  "ESCALATED", "FLAKY", "ERROR",
+  "QUEUED",
+  "RUNNING",
+  "VERIFIED",
+  "FAIL_WITH_EVIDENCE",
+  "ESCALATED",
+  "FLAKY",
+  "ERROR",
 ]);
 
 export const StepStatus = z.enum(["PASSED", "FAILED", "SKIPPED", "HEALED", "FLAKY"]);
@@ -361,47 +437,76 @@ export const Run = z.object({
   lapId: Id,
   scenarioId: z.string(),
   status: RunStatus,
-  attempt: z.number().int().min(0),                // 0 = initial, 1..2 = post-heal
+  attempt: z.number().int().min(0), // 0 = initial, 1..2 = post-heal
   startedAt: Iso,
   finishedAt: Iso.nullable(),
   durationMs: z.number().int().nullable(),
   verification: z.object({
     healedStepRerun: z.boolean().default(false),
-    fullFlowRerun: z.boolean().default(false),     // TG-10 · I-7
+    fullFlowRerun: z.boolean().default(false), // TG-10 · I-7
   }),
   diagnosisSource: z.enum(["deterministic", "llm", "llm+deterministic"]).nullable(),
 });
 
 export const SessionEventType = z.enum([
-  "session.started", "explore.state", "explore.finished",
-  "capabilities.ranked", "lap.started",
-  "plan.drafted", "critique.finished", "critique.replan",
-  "generate.validated", "generate.dropped",
-  "run.started", "step.finished", "evidence.captured",
-  "triage.finished", "heal.candidates", "heal.decided", "heal.patched",
-  "heal.rolled_back", "verify.finished",
-  "lap.banked", "report.generated", "session.finished",
+  "session.started",
+  "explore.state",
+  "explore.finished",
+  "capabilities.ranked",
+  "lap.started",
+  "plan.drafted",
+  "critique.finished",
+  "critique.replan",
+  "generate.validated",
+  "generate.dropped",
+  "run.started",
+  "step.finished",
+  "evidence.captured",
+  "triage.finished",
+  "heal.candidates",
+  "heal.decided",
+  "heal.patched",
+  "heal.rolled_back",
+  "verify.finished",
+  "lap.banked",
+  "report.generated",
+  "session.finished",
 ]);
 
 export const SessionEvent = z.object({
-  seq: z.number().int().nonnegative(),             // monotonic, gapless, per session
+  seq: z.number().int().nonnegative(), // monotonic, gapless, per session
   sessionId: Id,
   lapId: Id.nullable(),
   at: Iso,
   actor: z.enum([
-    "orchestrator", "explorer", "planner", "critic", "generator",
-    "runner", "triage", "healer", "reporter", "human",
+    "orchestrator",
+    "explorer",
+    "planner",
+    "critic",
+    "generator",
+    "runner",
+    "triage",
+    "healer",
+    "reporter",
+    "human",
   ]),
   type: SessionEventType,
   payload: z.record(z.unknown()),
 });
 
 export const EvidenceType = z.enum([
-  "SNAPSHOT",     // accessibility snapshot — the perception primitive
-  "DOM", "SCREENSHOT", "CROP", "TRACE", "CONSOLE", "NETWORK",
-  "DIFF", "PATCH",
-  "TRANSCRIPT",   // a sub-agent loop transcript — ADR-011 §4, cost 3
-  "PLAN", "REPORT",
+  "SNAPSHOT", // accessibility snapshot — the perception primitive
+  "DOM",
+  "SCREENSHOT",
+  "CROP",
+  "TRACE",
+  "CONSOLE",
+  "NETWORK",
+  "DIFF",
+  "PATCH",
+  "TRANSCRIPT", // a sub-agent loop transcript — ADR-011 §4, cost 3
+  "PLAN",
+  "REPORT",
 ]);
 
 export const Evidence = z.object({
@@ -411,11 +516,11 @@ export const Evidence = z.object({
   runId: Id.nullable(),
   stepId: z.string().nullable(),
   type: EvidenceType,
-  path: z.string(),                                // relative to artifacts/
+  path: z.string(), // relative to artifacts/
   sha256: z.string().length(64),
   bytes: z.number().int().nonnegative(),
   capturedAt: Iso,
-  label: z.string(),                               // short human caption for the UI
+  label: z.string(), // short human caption for the UI
   metadata: z.record(z.unknown()).default({}),
 });
 ```
@@ -428,8 +533,12 @@ Carried over from the pre-brief model, which the brief validated rather than inv
 
 ```ts
 export const DiagnosisKind = z.enum([
-  "LOCATOR_BREAK", "CONTENT_DRIFT", "PRODUCT_BUG",   // was DESIGN_DRIFT — see §5
-  "FLAKY", "ENVIRONMENT", "UNKNOWN",
+  "LOCATOR_BREAK",
+  "CONTENT_DRIFT",
+  "PRODUCT_BUG", // was DESIGN_DRIFT — see §5
+  "FLAKY",
+  "ENVIRONMENT",
+  "UNKNOWN",
 ]);
 
 export const RecommendedAction = z.enum(["HEAL", "FAIL", "ESCALATE", "RETRY"]);
@@ -440,65 +549,104 @@ export const Diagnosis = z.object({
   stepId: z.string(),
   kind: DiagnosisKind,
   confidence: Confidence,
-  evidenceIds: z.array(Id).min(3),                 // FR-602 — must cite ≥ 3
+  evidenceIds: z.array(Id).min(3), // FR-602 — must cite ≥ 3
   explanation: z.string().min(10).max(400),
   recommendedAction: RecommendedAction,
   source: z.enum(["deterministic", "llm", "llm+deterministic"]),
-  vetoes: z.array(z.string()).default([]),         // ["V2"]
-  final: z.boolean().default(false),               // true ⇒ no model output may override
+  vetoes: z.array(z.string()).default([]), // ["V2"]
+  final: z.boolean().default(false), // true ⇒ no model output may override
   /** Non-null for PRODUCT_BUG. All three fields required. FR-606 */
-  defectReport: z.object({
-    expected: z.string(), actual: z.string(), reproduction: z.array(z.string()).min(1),
-  }).nullable().default(null),
+  defectReport: z
+    .object({
+      expected: z.string(),
+      actual: z.string(),
+      reproduction: z.array(z.string()).min(1),
+    })
+    .nullable()
+    .default(null),
   /** Set when this failure matched a previously diagnosed signature — no model call. */
   sameRootCauseAs: z.string().nullable().default(null),
   failureSignature: z.string().length(16),
 });
 
 export const HealSignals = z.object({
-  semantic: Confidence, role: Confidence, text: Confidence,
-  domContext: Confidence, visualGeometry: Confidence, historical: Confidence,
+  semantic: Confidence,
+  role: Confidence,
+  text: Confidence,
+  domContext: Confidence,
+  visualGeometry: Confidence,
+  historical: Confidence,
 });
 
 export const HealCandidate = z.object({
-  id: Id, diagnosisId: Id, rank: z.number().int(),
+  id: Id,
+  diagnosisId: Id,
+  rank: z.number().int(),
   strategy: z.enum([
-    "role_name", "label", "placeholder", "text", "test_id",
-    "alt_title", "dom_relative", "css", "xpath", "geometry",
+    "role_name",
+    "label",
+    "placeholder",
+    "text",
+    "test_id",
+    "alt_title",
+    "dom_relative",
+    "css",
+    "xpath",
+    "geometry",
   ]),
   locator: z.string(),
-  resolvedCount: z.number().int(),                 // must be exactly 1 to be eligible
+  resolvedCount: z.number().int(), // must be exactly 1 to be eligible
   signals: HealSignals,
   score: Confidence,
   rationale: z.string().max(300),
-  blockedBy: z.array(z.string()).default([]),      // veto IDs
+  blockedBy: z.array(z.string()).default([]), // veto IDs
 });
 
 export const TestPatch = z.object({
-  id: Id, runId: Id, scenarioId: z.string(), stepId: z.string(),
-  before: z.string(), after: z.string(),
-  diff: z.string(),                                // unified diff — FR-709
-  beforeFileSha256: z.string().length(64),         // enables byte-exact rollback — FR-710
-  appliedAt: Iso, verifiedAt: Iso.nullable(), revertedAt: Iso.nullable(),
+  id: Id,
+  runId: Id,
+  scenarioId: z.string(),
+  stepId: z.string(),
+  before: z.string(),
+  after: z.string(),
+  diff: z.string(), // unified diff — FR-709
+  beforeFileSha256: z.string().length(64), // enables byte-exact rollback — FR-710
+  appliedAt: Iso,
+  verifiedAt: Iso.nullable(),
+  revertedAt: Iso.nullable(),
 });
 
 export const ElementFingerprint = z.object({
-  id: Id, scenarioId: z.string(), stepId: z.string(),
-  capturedInRunId: Id, capturedAt: Iso,
+  id: Id,
+  scenarioId: z.string(),
+  stepId: z.string(),
+  capturedInRunId: Id,
+  capturedAt: Iso,
   intent: z.string(),
-  role: z.string().nullable(), accessibleName: z.string().nullable(),
-  text: z.string().nullable(), tagName: z.string(), testId: z.string().nullable(),
-  attributes: z.record(z.string()),                // allowlist, see below
-  ancestorPath: z.array(z.object({
-    tag: z.string(), role: z.string().nullable(), id: z.string().nullable(),
-  })),                                             // root → parent, max 6 deep
+  role: z.string().nullable(),
+  accessibleName: z.string().nullable(),
+  text: z.string().nullable(),
+  tagName: z.string(),
+  testId: z.string().nullable(),
+  attributes: z.record(z.string()), // allowlist, see below
+  ancestorPath: z.array(
+    z.object({
+      tag: z.string(),
+      role: z.string().nullable(),
+      id: z.string().nullable(),
+    }),
+  ), // root → parent, max 6 deep
   siblingIndex: z.number().int(),
-  bbox: BBox, viewport: Viewport,
+  bbox: BBox,
+  viewport: Viewport,
   screenshotCropEvidenceId: Id.nullable(),
   computedStyle: z.object({
-    color: z.string(), backgroundColor: z.string(),
-    fontSize: z.string(), fontWeight: z.string(),
-    display: z.string(), visibility: z.string(),
+    color: z.string(),
+    backgroundColor: z.string(),
+    fontSize: z.string(),
+    fontWeight: z.string(),
+    display: z.string(),
+    visibility: z.string(),
   }),
 });
 ```
@@ -518,48 +666,84 @@ export const UntestedFlowRisk = z.object({
   name: z.string(),
   why: z.string().max(300),
   riskScore: Confidence,
-  factors: RiskFactors,                            // FR-804 — ranked, never alphabetical
+  factors: RiskFactors, // FR-804 — ranked, never alphabetical
 });
 
 export const QualityReport = z.object({
   id: Id,
   sessionId: Id,
   // ── the five contents clause M7 names, all required ──────────────────
-  scenariosCovered: z.array(z.object({
-    scenarioId: z.string(), capability: z.string(),
-    title: z.string(), class: ScenarioClass, priority: Priority,
-  })),
+  scenariosCovered: z.array(
+    z.object({
+      scenarioId: z.string(),
+      capability: z.string(),
+      title: z.string(),
+      class: ScenarioClass,
+      priority: Priority,
+    }),
+  ),
   outcomes: z.object({
-    passed: z.number().int(), failed: z.number().int(),
-    healed: z.number().int(), flaky: z.number().int(), skipped: z.number().int(),
+    passed: z.number().int(),
+    failed: z.number().int(),
+    healed: z.number().int(),
+    flaky: z.number().int(),
+    skipped: z.number().int(),
   }),
-  healerActions: z.array(z.object({
-    runId: Id, stepId: z.string(), decision: z.enum(["HEALED", "BLOCKED", "ESCALATED"]),
-    vetoId: z.string().nullable(), before: z.string(), after: z.string().nullable(),
-    confidence: Confidence, verified: z.boolean(),
-  })),
+  healerActions: z.array(
+    z.object({
+      runId: Id,
+      stepId: z.string(),
+      decision: z.enum(["HEALED", "BLOCKED", "ESCALATED"]),
+      vetoId: z.string().nullable(),
+      before: z.string(),
+      after: z.string().nullable(),
+      confidence: Confidence,
+      verified: z.boolean(),
+    }),
+  ),
   coverageGapsRemaining: z.array(Gap),
   untestedFlowRisk: z.array(UntestedFlowRisk),
   // ── everything below is ours, not the brief's ────────────────────────
-  defects: z.array(z.object({ diagnosisId: Id, capability: z.string(),
-    expected: z.string(), actual: z.string(), severity: Severity })),
+  defects: z.array(
+    z.object({
+      diagnosisId: Id,
+      capability: z.string(),
+      expected: z.string(),
+      actual: z.string(),
+      severity: Severity,
+    }),
+  ),
   score: z.lazy(() => RobustnessScore),
-  hoursSaved: z.object({                           // FR-807
-    estimate: z.number(), assumptions: z.array(z.string()).min(1),
-  }).nullable(),
+  hoursSaved: z
+    .object({
+      // FR-807
+      estimate: z.number(),
+      assumptions: z.array(z.string()).min(1),
+    })
+    .nullable(),
   generatedAt: Iso,
 });
 
 export const RobustnessScore = z.object({
-  current: z.number().min(0).max(100),             // FR-802
-  projected: z.number().min(0).max(100),           // FR-803 — "fix these and it scores 71"
-  components: z.record(z.string(), z.number()),    // every term, so it can be re-added by hand
-  perCapability: z.array(z.object({                // FR-806
-    capabilityId: Id, name: z.string(), points: z.number(), lostBecause: z.array(z.string()),
-  })),
-  findings: z.array(z.object({
-    findingId: Id, title: z.string(), pointsIfFixed: z.number(),
-  })),
+  current: z.number().min(0).max(100), // FR-802
+  projected: z.number().min(0).max(100), // FR-803 — "fix these and it scores 71"
+  components: z.record(z.string(), z.number()), // every term, so it can be re-added by hand
+  perCapability: z.array(
+    z.object({
+      // FR-806
+      capabilityId: Id,
+      name: z.string(),
+      points: z.number(),
+      lostBecause: z.array(z.string()),
+    }),
+  ),
+  findings: z.array(
+    z.object({
+      findingId: Id,
+      title: z.string(),
+      pointsIfFixed: z.number(),
+    }),
+  ),
 });
 ```
 
@@ -569,13 +753,13 @@ export const RobustnessScore = z.object({
 
 ## 3. What was removed
 
-| Entity | Disposition |
-|---|---|
-| `DesignContract`, `DesignElement`, `DesignRule` | **Removed.** Design intelligence is deferred ([ADR-013](../decisions/ADR-013-design-intelligence-deferred.md)); the shapes are preserved in [deferred/](../deferred/design-intelligence.md). |
-| `DesignFinding` | **Removed.** Its evidence type `DESIGN` and DB table go with it. |
-| `Target` | **Merged into `Session`.** The pre-brief model had a `Target` because a human supplied an intent per target; now the session *is* the target plus its inputs. |
-| `TestSpec` | **Renamed to `Scenario`** and re-parented under `TestPlan`. |
-| `RunEvent` | **Renamed to `SessionEvent`** and re-parented under `Session`, matching `NFR-4`'s `session_events` table. `seq` is now monotonic per session, so the timeline is one ordered stream across all laps. |
+| Entity                                          | Disposition                                                                                                                                                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DesignContract`, `DesignElement`, `DesignRule` | **Removed.** Design intelligence is deferred ([ADR-013](../decisions/ADR-013-design-intelligence-deferred.md)); the shapes are preserved in [deferred/](../deferred/design-intelligence.md).         |
+| `DesignFinding`                                 | **Removed.** Its evidence type `DESIGN` and DB table go with it.                                                                                                                                     |
+| `Target`                                        | **Merged into `Session`.** The pre-brief model had a `Target` because a human supplied an intent per target; now the session _is_ the target plus its inputs.                                        |
+| `TestSpec`                                      | **Renamed to `Scenario`** and re-parented under `TestPlan`.                                                                                                                                          |
+| `RunEvent`                                      | **Renamed to `SessionEvent`** and re-parented under `Session`, matching `NFR-4`'s `session_events` table. `seq` is now monotonic per session, so the timeline is one ordered stream across all laps. |
 
 Nothing was deleted without a destination — the rule from [00 · Work Plan §6](../00-work-plan.md) applies to schemas as much as to documents.
 
@@ -597,6 +781,11 @@ CREATE TABLE sessions (
   input_json TEXT NOT NULL,          -- password stripped before write (I-16)
   usage_json TEXT, created_at TEXT NOT NULL, finished_at TEXT
 );
+CREATE TABLE idempotency_keys (
+  key TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES sessions(id),
+  created_at TEXT NOT NULL
+);
 
 -- APPEND ONLY. NFR-4. No UPDATE or DELETE may target this table.
 CREATE TABLE session_events (
@@ -605,6 +794,12 @@ CREATE TABLE session_events (
   actor TEXT NOT NULL, type TEXT NOT NULL, payload_json TEXT NOT NULL,
   PRIMARY KEY (session_id, seq)
 );
+CREATE TRIGGER session_events_no_update
+BEFORE UPDATE ON session_events
+BEGIN SELECT RAISE(ABORT, 'session_events is append-only'); END;
+CREATE TRIGGER session_events_no_delete
+BEFORE DELETE ON session_events
+BEGIN SELECT RAISE(ABORT, 'session_events is append-only'); END;
 
 CREATE TABLE states (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id),
@@ -731,55 +926,55 @@ CREATE TABLE quality_reports (
 
 `I-1` … `I-10` are carried over from the pre-brief model; where an entity was renamed, the invariant kept its number and changed its subject ([00 · Work Plan §5](../00-work-plan.md): IDs are permanent).
 
-| # | Invariant | Enforced in | Test |
-|---|---|---|---|
-| `I-1` | `session_events` is append-only; `seq` is gapless per session | `store.appendEvent()` | `store/events.test.ts` |
-| `I-2` | An evidence path always contains its own sha256 prefix, and `putEvidence()` compares the **full** hash on a prefix hit | `store.putEvidence()` | `store/evidence.test.ts` |
-| `I-3` | A step whose `kind ∈ ASSERTION_KINDS` never receives a patch | `healing.guard()` | `healing/veto.test.ts` |
-| `I-4` | `healAttempts ≤ 2` per step and `≤ 3` per lap | orchestrator FSM | `orchestrator/limits.test.ts` |
-| `I-5` | Only `resolvedCount === 1` candidates are eligible for scoring | `healing.filterEligible()` | `healing/candidates.test.ts` |
-| `I-6` | A `Diagnosis` with a fired veto has `final = true` | `diagnose.preClassify()` | `diagnose/preclass.test.ts` |
-| `I-7` | `Run.status = VERIFIED` requires `verification.fullFlowRerun = true` | `TG-10` | `orchestrator/verify.test.ts` |
-| `I-8` | Every `evidenceId` cited in a diagnosis resolves to a stored row | `store.resolveEvidence()` | `orchestrator/triage.test.ts` |
-| `I-9` | Writes stay inside the allowlist; traversal escapes are rejected | `store.safeWrite()` | `store/paths.test.ts` |
-| `I-10` | `Scenario.version` increments on every accepted patch | `healing.applyPatch()` | `healing/patch.test.ts` |
-| `I-11` | **No lap enters `GENERATING` without a `CoverageAssessment` for its current plan** | `TG-5b` + a unique index | `orchestrator/guards.test.ts` |
-| `I-12` | `Lap.replanRounds ≤ 2`, enforced by the FSM **and** a `CHECK` constraint | `TG-6`, DDL | `orchestrator/replan.test.ts` |
-| `I-13` | Every `TestStep.stateId` and `affordanceRef` resolves in the `CapabilityMap` | `plan.validate()` | `schema/grounding.test.ts` |
-| `I-14` | A re-plan preserves `scenarioId` for scenarios whose steps are unchanged | `planner.merge()` | `agents/planner.test.ts` |
-| `I-15` | A session ends in exactly one terminal status; every lap ends `BANKED` with exactly one outcome | orchestrator FSM | `orchestrator/terminal.test.ts` |
-| `I-16` | No credential literal appears in any evidence row, event payload, stored session, or generated file | `store.putEvidence()`, `redact()` | `store/redaction.test.ts` |
-| `I-17` | `priorityRank` is a pure function of the `CapabilityMap` — the same map yields the same order | `prioritise()` | `orchestrator/ranking.test.ts` |
-| `I-18` | A `QualityReport` has all five brief-mandated fields populated | `QualityReportSchema` | `report/contents.test.ts` |
-| `I-19` | `RobustnessScore.current` recomputes exactly from stored inputs | `report.score()` | `report/score.test.ts` |
-| `I-20` | Every affordance with `destructive = true` also has `observedNotExercised = true` | `explorer.denyList()` | `perception/denylist.test.ts` |
+| #      | Invariant                                                                                                              | Enforced in                       | Test                            |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------- |
+| `I-1`  | `session_events` is append-only; `seq` is gapless per session                                                          | `store.appendEvent()`             | `store/events.test.ts`          |
+| `I-2`  | An evidence path always contains its own sha256 prefix, and `putEvidence()` compares the **full** hash on a prefix hit | `store.putEvidence()`             | `store/evidence.test.ts`        |
+| `I-3`  | A step whose `kind ∈ ASSERTION_KINDS` never receives a patch                                                           | `healing.guard()`                 | `healing/veto.test.ts`          |
+| `I-4`  | `healAttempts ≤ 2` per step and `≤ 3` per lap                                                                          | orchestrator FSM                  | `orchestrator/limits.test.ts`   |
+| `I-5`  | Only `resolvedCount === 1` candidates are eligible for scoring                                                         | `healing.filterEligible()`        | `healing/candidates.test.ts`    |
+| `I-6`  | A `Diagnosis` with a fired veto has `final = true`                                                                     | `diagnose.preClassify()`          | `diagnose/preclass.test.ts`     |
+| `I-7`  | `Run.status = VERIFIED` requires `verification.fullFlowRerun = true`                                                   | `TG-10`                           | `orchestrator/verify.test.ts`   |
+| `I-8`  | Every `evidenceId` cited in a diagnosis resolves to a stored row                                                       | `store.resolveEvidence()`         | `orchestrator/triage.test.ts`   |
+| `I-9`  | Writes stay inside the allowlist; traversal escapes are rejected                                                       | `store.safeWrite()`               | `store/paths.test.ts`           |
+| `I-10` | `Scenario.version` increments on every accepted patch                                                                  | `healing.applyPatch()`            | `healing/patch.test.ts`         |
+| `I-11` | **No lap enters `GENERATING` without a `CoverageAssessment` for its current plan**                                     | `TG-5b` + a unique index          | `orchestrator/guards.test.ts`   |
+| `I-12` | `Lap.replanRounds ≤ 2`, enforced by the FSM **and** a `CHECK` constraint                                               | `TG-6`, DDL                       | `orchestrator/replan.test.ts`   |
+| `I-13` | Every `TestStep.stateId` and `affordanceRef` resolves in the `CapabilityMap`                                           | `plan.validate()`                 | `schema/grounding.test.ts`      |
+| `I-14` | A re-plan preserves `scenarioId` for scenarios whose steps are unchanged                                               | `planner.merge()`                 | `agents/planner.test.ts`        |
+| `I-15` | A session ends in exactly one terminal status; every lap ends `BANKED` with exactly one outcome                        | orchestrator FSM                  | `orchestrator/terminal.test.ts` |
+| `I-16` | No credential literal appears in any evidence row, event payload, stored session, or generated file                    | `store.putEvidence()`, `redact()` | `store/redaction.test.ts`       |
+| `I-17` | `priorityRank` is a pure function of the `CapabilityMap` — the same map yields the same order                          | `prioritise()`                    | `orchestrator/ranking.test.ts`  |
+| `I-18` | A `QualityReport` has all five brief-mandated fields populated                                                         | `QualityReportSchema`             | `report/contents.test.ts`       |
+| `I-19` | `RobustnessScore.current` recomputes exactly from stored inputs                                                        | `report.score()`                  | `report/score.test.ts`          |
+| `I-20` | Every affordance with `destructive = true` also has `observedNotExercised = true`                                      | `explorer.denyList()`             | `perception/denylist.test.ts`   |
 
-`I-13` and `I-17` are the two that would otherwise be discovered late and painfully: the first is the only thing standing between a plan and a hallucinated button, and the second is what the promise *"the first lap is the most valuable"* actually rests on (ADR-012 A3).
+`I-13` and `I-17` are the two that would otherwise be discovered late and painfully: the first is the only thing standing between a plan and a hallucinated button, and the second is what the promise _"the first lap is the most valuable"_ actually rests on (ADR-012 A3).
 
 ---
 
 ## 6. ID conventions
 
-| Prefix | Entity | Example |
-|---|---|---|
-| `ses_` | Session | `ses_01j9x2k4` |
-| `st_` | State | `st_01j9x2k5` |
-| `af_` | Affordance | `af_01j9x2k6` |
-| `tr_` | Transition | `tr_01j9x2k7` |
-| `cap_` | Capability | `cap_01j9x2k8` |
-| `lap_` | Lap | `lap_01j9x2k9` |
-| `pln_` | TestPlan | `pln_01j9x3a0` |
-| `SC-nnn` | Scenario (session-scoped, human-facing, **stable**) | `SC-014` |
-| `s<n>` | TestStep (scenario-local) | `s4` |
-| `cva_` | CoverageAssessment | `cva_01j9x3a1` |
-| `gap_` | Gap | `gap_01j9x3a2` |
-| `run_` | Run | `run_01j9x3aa` |
-| `ev_` | Evidence | `ev_01j9x3ab` |
-| `fp_` | ElementFingerprint | `fp_01j9x3ac` |
-| `dg_` | Diagnosis | `dg_01j9x3ad` |
-| `hc_` | HealCandidate | `hc_01j9x3ae` |
-| `pt_` | TestPatch | `pt_01j9x3af` |
-| `qr_` | QualityReport | `qr_01j9x3ag` |
+| Prefix   | Entity                                              | Example        |
+| -------- | --------------------------------------------------- | -------------- |
+| `ses_`   | Session                                             | `ses_01j9x2k4` |
+| `st_`    | State                                               | `st_01j9x2k5`  |
+| `af_`    | Affordance                                          | `af_01j9x2k6`  |
+| `tr_`    | Transition                                          | `tr_01j9x2k7`  |
+| `cap_`   | Capability                                          | `cap_01j9x2k8` |
+| `lap_`   | Lap                                                 | `lap_01j9x2k9` |
+| `pln_`   | TestPlan                                            | `pln_01j9x3a0` |
+| `SC-nnn` | Scenario (session-scoped, human-facing, **stable**) | `SC-014`       |
+| `s<n>`   | TestStep (scenario-local)                           | `s4`           |
+| `cva_`   | CoverageAssessment                                  | `cva_01j9x3a1` |
+| `gap_`   | Gap                                                 | `gap_01j9x3a2` |
+| `run_`   | Run                                                 | `run_01j9x3aa` |
+| `ev_`    | Evidence                                            | `ev_01j9x3ab`  |
+| `fp_`    | ElementFingerprint                                  | `fp_01j9x3ac`  |
+| `dg_`    | Diagnosis                                           | `dg_01j9x3ad`  |
+| `hc_`    | HealCandidate                                       | `hc_01j9x3ae`  |
+| `pt_`    | TestPatch                                           | `pt_01j9x3af`  |
+| `qr_`    | QualityReport                                       | `qr_01j9x3ag`  |
 
 IDs are ULID-based, so they sort lexicographically by creation time. `Scenario` is the deliberate exception: `SC-014` appears in a test title, a plan document, a report row and a judge's field of view, so it is short, sequential and human-quotable — and stable across re-planning (`FR-205`, `I-14`).
 
@@ -787,19 +982,19 @@ IDs are ULID-based, so they sort lexicographically by creation time. `Scenario` 
 
 ## 7. Migration from the pre-brief model
 
-| Pre-brief | Disposition | Now |
-|---|---|---|
-| `Target` | Merged | `Session` |
-| `TestSpec` | Renamed, re-parented | `Scenario` under `TestPlan` |
-| `TestStep` | Retained, **extended** with `stateId`, `affordanceRef`, `resolvedCount` | `TestStep` |
-| `Run` | Retained, re-parented under `Lap`, scoped to one scenario | `Run` |
-| `RunEvent` | Renamed, re-parented, `seq` now session-scoped | `SessionEvent` |
-| `Evidence` | Retained; `DESIGN` type dropped, `SNAPSHOT` and `TRANSCRIPT` added | `Evidence` |
-| `Diagnosis` | Retained; `DESIGN_DRIFT` → `CONTENT_DRIFT`; `defectReport`, `failureSignature` added | `Diagnosis` |
-| `HealCandidate`, `TestPatch` | Retained; `beforeFileSha256` added for byte-exact rollback | unchanged names |
-| `ElementFingerprint` | Retained; re-keyed from `testSpecId` to `scenarioId` | `ElementFingerprint` |
-| `DesignContract`, `DesignElement`, `DesignRule`, `DesignFinding` | Removed | [deferred/](../deferred/design-intelligence.md) |
-| — | New | `Affordance`, `State`, `Transition`, `CapabilityMap`, `Capability`, `Lap`, `TestPlan`, `CoverageAssessment`, `Gap`, `QualityReport`, `RobustnessScore` |
+| Pre-brief                                                        | Disposition                                                                          | Now                                                                                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Target`                                                         | Merged                                                                               | `Session`                                                                                                                                              |
+| `TestSpec`                                                       | Renamed, re-parented                                                                 | `Scenario` under `TestPlan`                                                                                                                            |
+| `TestStep`                                                       | Retained, **extended** with `stateId`, `affordanceRef`, `resolvedCount`              | `TestStep`                                                                                                                                             |
+| `Run`                                                            | Retained, re-parented under `Lap`, scoped to one scenario                            | `Run`                                                                                                                                                  |
+| `RunEvent`                                                       | Renamed, re-parented, `seq` now session-scoped                                       | `SessionEvent`                                                                                                                                         |
+| `Evidence`                                                       | Retained; `DESIGN` type dropped, `SNAPSHOT` and `TRANSCRIPT` added                   | `Evidence`                                                                                                                                             |
+| `Diagnosis`                                                      | Retained; `DESIGN_DRIFT` → `CONTENT_DRIFT`; `defectReport`, `failureSignature` added | `Diagnosis`                                                                                                                                            |
+| `HealCandidate`, `TestPatch`                                     | Retained; `beforeFileSha256` added for byte-exact rollback                           | unchanged names                                                                                                                                        |
+| `ElementFingerprint`                                             | Retained; re-keyed from `testSpecId` to `scenarioId`                                 | `ElementFingerprint`                                                                                                                                   |
+| `DesignContract`, `DesignElement`, `DesignRule`, `DesignFinding` | Removed                                                                              | [deferred/](../deferred/design-intelligence.md)                                                                                                        |
+| —                                                                | New                                                                                  | `Affordance`, `State`, `Transition`, `CapabilityMap`, `Capability`, `Lap`, `TestPlan`, `CoverageAssessment`, `Gap`, `QualityReport`, `RobustnessScore` |
 
 **The one semantic change to argue about:** `DESIGN_DRIFT` becomes `CONTENT_DRIFT` (`FR-601`). The old name presumed a design contract we no longer maintain. The new one covers what actually happens on an arbitrary application — a button's copy changed, a currency symbol moved, a label was reworded — which is a real and common cause that must never be confused with a locator break, and must never be silently healed.
 

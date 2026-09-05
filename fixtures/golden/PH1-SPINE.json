@@ -1,0 +1,30 @@
+{
+  "id": "PH1-SPINE",
+  "title": "Stubbed session traverses the persisted Phase 1 spine",
+  "seed": 20260905,
+  "given": {
+    "reset": true,
+    "session": {
+      "url": "http://phase1.stub/",
+      "intent": "prove the orchestration spine",
+      "budget": {
+        "maxCapabilities": 1,
+        "maxDurationMs": 60000,
+        "maxUsd": 0.01
+      }
+    }
+  },
+  "expect": {
+    "session": {
+      "status": "COMPLETED",
+      "exitCode": 0,
+      "defectsFound": 0
+    }
+  },
+  "requirements": [
+    "FR-001",
+    "FR-002",
+    "FR-903",
+    "FR-904"
+  ]
+}
