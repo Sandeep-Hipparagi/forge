@@ -13,6 +13,11 @@ export class MemoryStore {
     this.events.set(session.id, []);
   }
 
+  updateSession(session: Session): void {
+    if (!this.sessions.has(session.id)) throw new Error("unknown session");
+    this.sessions.set(session.id, session);
+  }
+
   appendEvent(event: Omit<SessionEvent, "seq">): SessionEvent {
     const events = this.events.get(event.sessionId);
     if (!events) throw new Error("unknown session");

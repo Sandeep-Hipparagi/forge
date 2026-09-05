@@ -13,7 +13,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@forge/core": ["packages/core/src/index.ts"]
+      "@forge/core": ["packages/core/src/index.ts"],
+      "@forge/store": ["packages/store/src/index.ts"],
+      "@forge/orchestrator": ["packages/orchestrator/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   }

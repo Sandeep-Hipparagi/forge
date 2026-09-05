@@ -95,6 +95,7 @@ export const Session = z.object({
 });
 
 export type SessionInput = z.input<typeof SessionInput>;
+export type SessionStatus = z.infer<typeof SessionStatus>;
 export type PersistedSessionInput = z.infer<typeof PersistedSessionInput>;
 export type Session = z.infer<typeof Session>;
 
