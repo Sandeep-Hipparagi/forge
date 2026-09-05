@@ -35,6 +35,7 @@
 | `FR-006` | MUST | Never persist credentials in plaintext, in evidence, in logs, or in generated test files. | Generated specs read from `process.env`. A grep of `artifacts/` and `tests/` for the password literal returns zero hits — asserted by a unit test. |
 | `FR-007` | SHOULD | Accept an optional `mode: "autopilot" \| "copilot"`, defaulting to `autopilot`. | Omitting the field yields an unattended run to completion. |
 | `FR-008` | MAY | Accept a `budget: {maxCapabilities, maxDurationMs, maxUsd}` envelope. | Exceeding any budget ends the session `COMPLETED_PARTIAL`, never `ERROR`. |
+| `FR-009` | SHOULD | Freeze a validated, redacted configuration snapshot at session creation. | Replaying a session after environment changes uses the persisted snapshot and exposes the same SHA-256 digest in its report and events. |
 
 **On `FR-001`.** This requirement is why the API takes a session object rather than positional arguments: it lets every later capability arrive as an optional field without changing the required surface. The brief's *"sole required input"* is a contract we can point at in code, not a claim in a README.
 

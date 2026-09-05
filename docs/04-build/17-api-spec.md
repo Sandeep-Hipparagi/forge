@@ -6,7 +6,7 @@
 
 ---
 
-## 1. Six principles
+## 1. Seven principles
 
 1. **One required input.** `POST /api/sessions` accepts `{url}` and nothing else is mandatory. `FR-001` is a contract we can point at in a schema, not a claim in a README.
 2. **The API never starts a second time.** Creation *is* the start (`FR-002`). There is no `/start`, no `/run`, no confirmation step — a second call would be a second chance for a human to intervene, which is exactly what the brief's 30% asks us not to need.
@@ -14,6 +14,7 @@
 4. **A broken target is never an HTTP error.** The target being down, refusing login, or containing a defect are *session outcomes*, not transport failures. `4xx`/`5xx` are reserved for the API being wrong. §8 is emphatic about this.
 5. **Every shape comes from `packages/core/schema`.** Responses are `z.infer` types serialised — no hand-written DTOs, no second source of truth ([05](../02-architecture/05-data-model.md)).
 6. **Read-only by default.** Six of the eight verbs in this document are `GET`. The three that mutate create a session, decide a gate, or resolve an escalation — and each is a deliberate human act.
+7. **A verdict has a frozen configuration.** The API resolves and persists `SessionConfigSnapshot` before it emits `session.started`. Responses expose its redacted digest and version, never mutable process configuration ([05 §2.2](../02-architecture/05-data-model.md)).
 
 ---
 
@@ -127,6 +128,12 @@ The `data` object is a `SessionEvent` verbatim ([05 §2.8](../02-architecture/05
 | **Alive** | A `: heartbeat` comment every 15 s, so a proxy cannot silently drop an idle stream |
 | **Bounded** | Payloads carry ids, never blobs. A DOM snapshot is `evidenceId`, fetched separately |
 | **Fast** | Published within **300 ms** of occurring (`P-5`, `FR-504`) |
+
+### 4.1.1 Compatibility and correlation
+
+Every event carries `id`, `eventVersion: 1`, `traceId`, `spanId`, `configSha256`, and `evidenceIds`. Delivery is at-least-once: the dashboard deduplicates by `id`, then uses `seq` to detect and recover gaps. Event types are additive; a breaking payload change increments the version and dual-publishes for the migration window. Unknown event types render as neutral audit rows.
+
+The API emits a correlation-safe JSON log and trace for every transition, agent call, browser action, and healing decision. Required fields are `sessionId`, `eventId` when present, actor, decision, duration, remaining budgets, `configSha256`, and evidence IDs. Error records carry a redacted error class, never raw target data or credentials. During the local MVP all traces are retained; any hosted mode must define retention and sampling policy before it is enabled.
 
 **Why SSE and not WebSockets.** The traffic is one-directional: the orchestrator narrates, the dashboard listens. Human decisions are rare, deliberate, and better as `POST`s that return a status than as messages into a socket with no response semantics. SSE also reconnects and replays by `id` for free, which is the exact behaviour a flaky venue network needs. A WebSocket would add a second protocol, a heartbeat we write ourselves, and a reconnection story we would have to test — for nothing.
 

@@ -566,9 +566,9 @@ One test per `TG-n` ([04 §3.3](../02-architecture/04-system-architecture.md)), 
 | `TG-10` | `healedStepRerun` true with `fullFlowRerun` false rolls back |
 | `TG-11` | budget exhaustion yields `COMPLETED_PARTIAL`, never `ERROR` |
 
-### 8.3 The twenty invariants
+### 8.3 The twenty-one invariants
 
-`I-1` … `I-20`, each with a test at the path named in [05 §5](../02-architecture/05-data-model.md). These are the tests that fail when someone "just quickly" issues an `UPDATE` against `session_events`, widens the write allowlist, or lets a sub-agent import the store.
+`I-1` … `I-21`, each with a test at the path named in [05 §5](../02-architecture/05-data-model.md). These are the tests that fail when someone "just quickly" issues an `UPDATE` against `session_events`, widens the write allowlist, mutates a session configuration, or lets a sub-agent import the store.
 
 ### 8.4 Boundaries — mandatory, on both sides
 

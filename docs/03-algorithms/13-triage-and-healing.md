@@ -393,6 +393,8 @@ The provenance header gains one block. It carries **no wall-clock time** — tha
 
 Showing `git diff` on this file live is the strongest possible proof that the fix landed in the repository and not merely in a dashboard.
 
+**Repository authority is explicit.** The MVP runs in `workspace` mode: it writes only the machine-owned generated path. A future `pull_request` mode may create a dedicated patch branch or pull request only after an explicit human authorization is persisted as evidence; it never commits to a shared branch. The same plan patch, generated diff, vetoes and full-flow verification apply in both modes.
+
 **Rollback** restores the file byte-for-byte from `beforeFileSha256`, sets `TestPatch.revertedAt`, emits `heal.rolled_back`, and escalates. The patch row is **retained as evidence** — a heal that had to be undone is the most informative row in the system, and deleting it would erase the cheapest early warning we have ([ADR-001](../decisions/ADR-001-veto-gated-healing.md) A1).
 
 > The patch is applied inside a transaction whose commit point is **verification passing**, not **the write succeeding**. That sentence is `FR-710`.
