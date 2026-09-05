@@ -24,7 +24,18 @@ export const createApiServer = (
     if (request.method === "POST" && url.pathname === "/api/sessions") {
       let body = "";
       for await (const chunk of request) body += chunk;
-      const inputResult = SessionInput.safeParse(JSON.parse(body || "{}"));
+      let rawBody: unknown;
+      try {
+        rawBody = JSON.parse(body || "{}");
+      } catch {
+        return sendJson(response, 400, {
+          error: {
+            code: "VALIDATION_FAILED",
+            message: "Malformed JSON payload",
+          },
+        });
+      }
+      const inputResult = SessionInput.safeParse(rawBody);
       if (!inputResult.success)
         return sendJson(response, 400, {
           error: {
@@ -33,6 +44,14 @@ export const createApiServer = (
           },
         });
       const config = defaultSessionConfig();
+      const host = new URL(inputResult.data.url).hostname;
+      if (!config.exploration.allowedHosts.includes(host))
+        return sendJson(response, 400, {
+          error: {
+            code: "HOST_NOT_ALLOWED",
+            message: "URL host is not allowed",
+          },
+        });
       const id = `ses_${String(counter++).padStart(8, "0")}`;
       const { password: _password, ...input } = inputResult.data;
       void _password;

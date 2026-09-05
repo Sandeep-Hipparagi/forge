@@ -4,8 +4,15 @@ import { runReplayCase } from "@forge/evals/src/replay.js";
 import { readFileSync } from "node:fs";
 
 const [command] = process.argv.slice(2);
+const tier = process.argv.includes("--tier")
+  ? process.argv[process.argv.indexOf("--tier") + 1]
+  : "replay";
 
 if (command === "eval") {
+  if (tier !== "replay") {
+    console.error("Only the replay tier is available in Phase 1.");
+    process.exit(2);
+  }
   const fixture = JSON.parse(
     readFileSync("fixtures/golden/EC-00-bootstrap.json", "utf8"),
   );

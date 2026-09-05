@@ -16,7 +16,7 @@ export const runReplayCase = async (): Promise<{
     const created = await fetch(`${base}/sessions`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: "https://example.test" }),
+      body: JSON.stringify({ url: "http://localhost" }),
     });
     if (created.status !== 201) throw new Error("session creation failed");
     const session = (await created.json()) as { id: string };

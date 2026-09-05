@@ -16,7 +16,7 @@ describe("Phase 1 API", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          url: "https://example.test",
+          url: "http://localhost",
           password: "secret",
         }),
       },
