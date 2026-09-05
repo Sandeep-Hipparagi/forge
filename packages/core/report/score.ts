@@ -1,12 +1,16 @@
 import type { Gap, QualityReport, RobustnessScore, ScenarioClass } from "../schema/index.js";
 import { BASE_TRUST } from "../healing/constants.js";
 
+export type ReportScenarioStatus = "passed" | "failed" | "healed" | "flaky" | "skipped";
+
 export type ReportScenario = {
   scenarioId: string;
   capability: string;
   title: string;
   class: ScenarioClass;
   priority: "P0" | "P1" | "P2" | "P3";
+  status?: ReportScenarioStatus;
+  failureReason?: string;
 };
 
 export type ReportHealerAction = QualityReport["healerActions"][number];
@@ -52,6 +56,91 @@ export type ReportInput = {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/**
+ * Older report-input.json rows recorded failures only in `defects` / outcome
+ * counts, without per-scenario `status`. Hydrate so the report can name them.
+ */
+export function hydrateScenarioStatuses(input: {
+  scenariosCovered: ReportScenario[];
+  outcomes: QualityReport["outcomes"];
+  defects: ReportDefect[];
+}): ReportScenario[] {
+  const scenarios = input.scenariosCovered.map((s) => ({ ...s }));
+  if (scenarios.length === 0) return scenarios;
+  if (scenarios.every((s) => s.status !== undefined)) return scenarios;
+
+  const usedDefects = new Set<number>();
+
+  const markFailed = (scenario: ReportScenario, reason: string) => {
+    scenario.status = "failed";
+    scenario.failureReason = reason.slice(0, 500);
+  };
+
+  for (let i = 0; i < input.defects.length; i += 1) {
+    const defect = input.defects[i]!;
+    const byId = scenarios.findIndex(
+      (s) =>
+        s.status === undefined &&
+        (defect.expected.includes(`(${s.scenarioId})`) || defect.expected.includes(s.scenarioId)),
+    );
+    const idx =
+      byId >= 0
+        ? byId
+        : scenarios.findIndex((s) => s.status === undefined && defect.expected.includes(s.title));
+    if (idx < 0) continue;
+    markFailed(scenarios[idx]!, defect.actual);
+    usedDefects.add(i);
+  }
+
+  for (let i = 0; i < input.defects.length; i += 1) {
+    if (usedDefects.has(i)) continue;
+    const defect = input.defects[i]!;
+    const target = scenarios.find((s) => s.status === undefined);
+    if (target === undefined) break;
+    const looksLikeScenarioFailure =
+      defect.expected === "scenario verified" ||
+      defect.expected === "suite execution" ||
+      defect.expected.startsWith("browser launch") ||
+      /SC-\d+/i.test(defect.expected);
+    if (!looksLikeScenarioFailure && input.outcomes.failed === 0) continue;
+    markFailed(target, defect.actual);
+    usedDefects.add(i);
+  }
+
+  let needPassed = input.outcomes.passed;
+  let needFailed = Math.max(
+    0,
+    input.outcomes.failed - scenarios.filter((s) => s.status === "failed").length,
+  );
+  let needSkipped = input.outcomes.skipped;
+  const hadLegacyFailure =
+    input.outcomes.failed > 0 && scenarios.some((s) => s.status === "failed");
+
+  for (const scenario of scenarios) {
+    if (scenario.status !== undefined) continue;
+    if (needFailed > 0) {
+      markFailed(scenario, scenario.failureReason ?? "Scenario failed — see Defects");
+      needFailed -= 1;
+      continue;
+    }
+    if (needPassed > 0) {
+      scenario.status = "passed";
+      needPassed -= 1;
+      continue;
+    }
+    if (needSkipped > 0 || hadLegacyFailure) {
+      scenario.status = "skipped";
+      scenario.failureReason =
+        scenario.failureReason ?? "Not executed — suite stopped after an earlier failure";
+      if (needSkipped > 0) needSkipped -= 1;
+      continue;
+    }
+    scenario.status = "passed";
+  }
+
+  return scenarios;
 }
 
 /**
@@ -163,10 +252,11 @@ export function buildReport(input: ReportInput): QualityReport & {
   acceptedRisk: Gap[];
 } {
   const score = computeRobustnessScore(input);
+  const scenariosCovered = hydrateScenarioStatuses(input);
   return {
     id: input.reportId,
     sessionId: input.sessionId,
-    scenariosCovered: input.scenariosCovered,
+    scenariosCovered,
     outcomes: input.outcomes,
     healerActions: input.healerActions,
     coverageGapsRemaining: [...input.residualGaps, ...input.acceptedRisk],

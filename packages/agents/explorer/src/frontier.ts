@@ -33,16 +33,34 @@ export type FrontierBudgets = {
   maxFanout: number;
   maxVisitedVariants: number;
   politenessDelayMs: number;
+  /** How many frontier items to exercise per chooseBatch (deterministic fallback). */
+  maxExercisePerBatch: number;
 };
 
 export const DEFAULT_FRONTIER_BUDGETS: FrontierBudgets = {
-  maxStates: 40,
+  maxStates: 30,
   wallClockMs: 90_000,
   maxModelCalls: 8,
   frontierBatchSize: 40,
   maxFanout: 12,
   maxVisitedVariants: 20,
   politenessDelayMs: 300,
+  maxExercisePerBatch: 6,
+};
+
+/**
+ * Live / agentic crawl: aim for up to 30 screens, exercise every safe control,
+ * and keep the wall clock high enough to finish before TIME_BUDGET.
+ */
+export const THOROUGH_FRONTIER_BUDGETS: Partial<FrontierBudgets> = {
+  maxStates: 30,
+  wallClockMs: 900_000,
+  maxModelCalls: 100,
+  frontierBatchSize: 60,
+  maxFanout: 80,
+  maxVisitedVariants: 40,
+  politenessDelayMs: 100,
+  maxExercisePerBatch: 60,
 };
 
 export type ExerciseOutcome = ToolResult<{ action: Transition["action"] }>;
@@ -135,10 +153,15 @@ export function sortFrontierItems(items: FrontierItem[]): FrontierItem[] {
 }
 
 /**
- * Deterministic no-model fallback for call site 1 (§3.5): top min(6, batch) by value.
+ * Deterministic no-model fallback for call site 1 (§3.5): top N by value.
+ * Default N=6 keeps unit tests / quick demos snappy; thorough crawls raise it.
  */
-export function chooseBatchFallback(batch: FrontierItem[]): FrontierItem[] {
-  return sortFrontierItems(batch).slice(0, Math.min(6, batch.length));
+export function chooseBatchFallback(
+  batch: FrontierItem[],
+  maxExercisePerBatch = DEFAULT_FRONTIER_BUDGETS.maxExercisePerBatch,
+): FrontierItem[] {
+  const limit = Math.max(1, maxExercisePerBatch);
+  return sortFrontierItems(batch).slice(0, Math.min(limit, batch.length));
 }
 
 function transitionKey(from: string, via: string, to: string): string {

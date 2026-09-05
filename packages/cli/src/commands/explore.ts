@@ -2,7 +2,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { systemRunContext } from "@forge/core";
-import { exploreSession } from "@forge/orchestrator";
+import { exploreSession, THOROUGH_FRONTIER_BUDGETS } from "@forge/orchestrator";
 import { ForgeStore } from "@forge/store";
 
 function parseFlags(argv: string[]): {
@@ -11,12 +11,14 @@ function parseFlags(argv: string[]): {
   pass: string | undefined;
   intent: string | undefined;
   headed: boolean;
+  screenshots: boolean;
 } {
   let url: string | undefined;
   let user: string | undefined;
   let pass: string | undefined;
   let intent: string | undefined;
   let headed = false;
+  let screenshots = true;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--user" || arg === "--username") {
@@ -35,11 +37,15 @@ function parseFlags(argv: string[]): {
       headed = true;
       continue;
     }
+    if (arg === "--no-screenshots") {
+      screenshots = false;
+      continue;
+    }
     if (!arg.startsWith("-") && url === undefined) {
       url = arg;
     }
   }
-  return { url, user, pass, intent, headed };
+  return { url, user, pass, intent, headed, screenshots };
 }
 
 /**
@@ -79,13 +85,15 @@ export async function runExplore(argv: string[], repoRoot: string): Promise<numb
         ...(flags.intent !== undefined ? { intent: flags.intent } : {}),
         headless: !flags.headed,
         terminal: true,
+        captureScreenshots: flags.screenshots,
         forceDeterministic: (process.env["FORGE_LLM_ENABLED"] ?? "true") === "false",
+        budgets: { ...THOROUGH_FRONTIER_BUDGETS },
       },
     });
 
     const { map, choiceSource, modelCalls, session } = result;
     console.log(
-      `session ${session.id} · ${map.frontier.haltReason} · source=${choiceSource} · modelCalls=${modelCalls}`,
+      `session ${session.id} · ${map.frontier.haltReason} · source=${choiceSource} · modelCalls=${modelCalls}${session.authenticated ? " · signed in" : ""}`,
     );
     console.log(
       `states ${map.states.length} · transitions ${map.transitions.length} · capabilities ${map.capabilities.length}`,

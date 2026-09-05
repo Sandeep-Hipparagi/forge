@@ -14,4 +14,5 @@ export {
   clusterCapabilities,
   fallbackNameCluster,
   routeTemplateOf,
+  THOROUGH_FRONTIER_BUDGETS,
 } from "@forge/agent-explorer";

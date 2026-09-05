@@ -43,6 +43,10 @@ export const QualityReport = z.object({
       title: z.string(),
       class: ScenarioClass,
       priority: Priority,
+      /** Per-scenario run result — optional for older stored report-input files. */
+      status: z.enum(["passed", "failed", "healed", "flaky", "skipped"]).optional(),
+      /** Present when status is failed (or suite aborted before the scenario ran). */
+      failureReason: z.string().max(500).optional(),
     }),
   ),
   outcomes: z.object({

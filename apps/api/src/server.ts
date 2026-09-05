@@ -276,14 +276,28 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     }
   }
 
-  async function kickOffLiveSession(sessionId: string): Promise<void> {
+  async function kickOffLiveSession(
+    sessionId: string,
+    credentials?: { username?: string; password?: string },
+  ): Promise<void> {
+    const hasCredentials =
+      (credentials?.username !== undefined && credentials.username.length > 0) ||
+      (credentials?.password !== undefined && credentials.password.length > 0);
     await runLiveSession({
       store: options.store,
       context: options.context,
       sessionId,
       repositoryRoot,
-      maxLaps: 1,
+      maxLaps: 10,
       headless: true,
+      ...(hasCredentials
+        ? {
+            credentials: {
+              username: credentials?.username ?? "",
+              password: credentials?.password ?? "",
+            },
+          }
+        : {}),
       onEvent: (event) => bus.publish(event),
     });
   }
@@ -334,7 +348,15 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     void reply.header("Location", `/api/sessions/${session.id}`);
     if (options.autoRun !== false) {
       if (parsed.data.live === true) {
-        setImmediate(() => void kickOffLiveSession(session.id));
+        // Password is accepted at the boundary, held only for this kickoff, never persisted.
+        const credentials =
+          parsed.data.username !== undefined || parsed.data.password !== undefined
+            ? {
+                ...(parsed.data.username !== undefined ? { username: parsed.data.username } : {}),
+                ...(parsed.data.password !== undefined ? { password: parsed.data.password } : {}),
+              }
+            : undefined;
+        setImmediate(() => void kickOffLiveSession(session.id, credentials));
       } else {
         setImmediate(() => void runStubSession(session.id));
       }

@@ -68,22 +68,24 @@ function matchChosen(decision: ExplorationDecision, batch: FrontierItem[]): Fron
 /**
  * Build the chooseBatch port for call site 1.
  * LLM path: one short runAgentLoop turn emitting ExplorationDecision.
- * Fallback: top min(6, batch) by the §3.3 value sort (breadth-first).
+ * Fallback: top N by the §3.3 value sort (breadth-first); N from budgets.
  */
 export function createChooseBatch(options: {
   context: AgentContext;
   forceDeterministic?: boolean;
+  maxExercisePerBatch?: number;
   onSource: (source: ChoiceSource) => void;
   onModelCall: () => void;
 }): FrontierPorts["chooseBatch"] {
   const useLlm = llmEnabled(options.forceDeterministic);
+  const exerciseLimit = options.maxExercisePerBatch ?? DEFAULT_FRONTIER_BUDGETS.maxExercisePerBatch;
 
   return async (batch, states) => {
     if (batch.length === 0) return [];
 
     if (!useLlm) {
       options.onSource("deterministic");
-      return chooseBatchFallback(batch);
+      return chooseBatchFallback(batch, exerciseLimit);
     }
 
     options.onModelCall();
@@ -133,7 +135,7 @@ export function createChooseBatch(options: {
       result.exitReason === "SCHEMA_FAILED"
     ) {
       options.onSource("deterministic");
-      return chooseBatchFallback(batch);
+      return chooseBatchFallback(batch, exerciseLimit);
     }
 
     if (result.output.stop === true) {
@@ -144,7 +146,7 @@ export function createChooseBatch(options: {
     const chosen = matchChosen(result.output, batch);
     if (chosen.length === 0) {
       options.onSource("deterministic");
-      return chooseBatchFallback(batch);
+      return chooseBatchFallback(batch, exerciseLimit);
     }
 
     options.onSource("llm");
@@ -171,6 +173,8 @@ export async function explore(
     ...(input.forceDeterministic !== undefined
       ? { forceDeterministic: input.forceDeterministic }
       : {}),
+    maxExercisePerBatch:
+      input.budgets?.maxExercisePerBatch ?? DEFAULT_FRONTIER_BUDGETS.maxExercisePerBatch,
     onSource: (source) => {
       if (source === "llm") sawLlm = true;
       choiceSource = sawLlm ? "llm" : "deterministic";

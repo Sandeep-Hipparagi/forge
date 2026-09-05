@@ -25,9 +25,19 @@ function sampleInput(overrides: Partial<ReportInput> = {}): ReportInput {
         title: "Happy path checkout",
         class: "happy",
         priority: "P0",
+        status: "passed",
+      },
+      {
+        scenarioId: "SC-002",
+        capability: "Checkout",
+        title: "Reject declined card",
+        class: "negative",
+        priority: "P1",
+        status: "failed",
+        failureReason: 'assertText failed: expected to contain "Card declined"',
       },
     ],
-    outcomes: { passed: 1, failed: 0, healed: 1, flaky: 0, skipped: 0 },
+    outcomes: { passed: 1, failed: 1, healed: 1, flaky: 0, skipped: 0 },
     healerActions: [
       {
         runId: "run_00000001",
@@ -233,5 +243,66 @@ describe("renderMarkdown · five mandated sections", () => {
     expect(md).toContain("## 4b. Accepted risk");
     expect(md).toContain("## 5. Untested flow risk");
     expect(md).toContain("## Robustness Score");
+  });
+
+  it("lists failed scenarios with failure reasons under pass/fail outcomes", () => {
+    const md = renderMarkdown(buildReport(sampleInput()));
+    expect(md).toContain("### Failed scenarios");
+    expect(md).toContain("**SC-002** · Reject declined card (Checkout)");
+    expect(md).toContain('assertText failed: expected to contain "Card declined"');
+    expect(md).toMatch(
+      /\| SC-002 \| Checkout \| Reject declined card \| negative \| P1 \| failed \|/,
+    );
+  });
+
+  it("hydrates legacy reports that only stored failures in defects", () => {
+    const report = buildReport(
+      sampleInput({
+        scenariosCovered: [
+          {
+            scenarioId: "SC-001",
+            capability: "Automation Exercise",
+            title: "Happy path to exit",
+            class: "happy",
+            priority: "P0",
+          },
+          {
+            scenarioId: "SC-002",
+            capability: "Automation Exercise",
+            title: "Negative — flow does not skip ahead",
+            class: "negative",
+            priority: "P2",
+          },
+          {
+            scenarioId: "SC-003",
+            capability: "Automation Exercise",
+            title: "Boundary — longest textbox at 256 characters",
+            class: "boundary",
+            priority: "P2",
+          },
+        ],
+        outcomes: { passed: 0, failed: 1, healed: 0, flaky: 0, skipped: 0 },
+        defects: [
+          {
+            diagnosisId: "diag_legacy0001",
+            capability: "Automation Exercise",
+            expected: "scenario verified",
+            actual:
+              "locator.waitFor: strict mode violation: getByRole('link') resolved to 60 elements",
+            severity: "MAJOR",
+          },
+        ],
+      }),
+    );
+
+    expect(report.scenariosCovered[0]?.status).toBe("failed");
+    expect(report.scenariosCovered[0]?.failureReason).toContain("strict mode violation");
+    expect(report.scenariosCovered[1]?.status).toBe("skipped");
+    expect(report.scenariosCovered[2]?.status).toBe("skipped");
+
+    const md = renderMarkdown(report);
+    expect(md).toContain("### Failed scenarios");
+    expect(md).toContain("**SC-001** · Happy path to exit (Automation Exercise)");
+    expect(md).toContain("strict mode violation");
   });
 });

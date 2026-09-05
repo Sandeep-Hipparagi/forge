@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  createSession,
   fetchEvents,
   fetchLivePreview,
   fetchSession,
@@ -22,6 +24,25 @@ function glyph(status: PipelineStep["status"]): string {
   return "○";
 }
 
+function deriveMode(intent: string | undefined): {
+  modeLabel: string | null;
+  focus: string | null;
+} {
+  if (!intent) return { modeLabel: null, focus: null };
+  const trimmed = intent.trim();
+  const modeMatch = trimmed.match(/^\[mode:\s*([^\]]+)\]\s*(.*)$/i);
+  if (!modeMatch) {
+    return { modeLabel: null, focus: trimmed.length > 0 ? trimmed : null };
+  }
+  const rawMode = modeMatch[1]!.toLowerCase();
+  const rest = modeMatch[2]!.trim();
+  let modeLabel: string;
+  if (rawMode.startsWith("login")) modeLabel = "Login smoke";
+  else if (rawMode.startsWith("explore")) modeLabel = "Explore only";
+  else modeLabel = rawMode;
+  return { modeLabel, focus: rest.length > 0 ? rest : null };
+}
+
 function formatTime(iso: string | null): string {
   if (iso === null) return "";
   try {
@@ -36,6 +57,7 @@ function formatTime(iso: string | null): string {
 }
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [session, setSession] = useState<SessionSummary | null>(null);
   const [events, setEvents] = useState<SessionEvent[]>([]);
@@ -45,6 +67,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const [preview, setPreview] = useState<LivePreview | null>(null);
   const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
   const [followLive, setFollowLive] = useState(true);
+  const [spawning, setSpawning] = useState<null | "full" | "login" | "explore">(null);
 
   useEffect(() => {
     void params.then(({ sessionId: id }) => setSessionId(id));
@@ -214,6 +237,30 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
     setVisibleCount(0);
   }, [sessionId]);
 
+  async function spawnFollowUp(mode: "full" | "login" | "explore"): Promise<void> {
+    if (!session || spawning !== null) return;
+    setSpawning(mode);
+    try {
+      const baseIntent = session.input.intent ?? "";
+      const prefix =
+        mode === "login"
+          ? "[mode: login-only]"
+          : mode === "explore"
+            ? "[mode: explore-only]"
+            : "[mode: full]";
+      const trimmed = baseIntent.trim().replace(/^\[mode:[^\]]+\]\s*/i, "");
+      const followupLabel = trimmed.length > 0 ? `${prefix} ${trimmed}` : prefix;
+      const next = await createSession(session.input.url, {
+        live: session.input.live === true,
+        ...(session.input.username !== undefined ? { username: session.input.username } : {}),
+        intent: followupLabel,
+      });
+      router.push(`/s/${next.id}`);
+    } finally {
+      setSpawning(null);
+    }
+  }
+
   if (sessionId === null) {
     return (
       <main className="shell">
@@ -236,6 +283,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
 
   const terminal = session !== null && isTerminal(session.status);
   const host = session?.input.url ?? sessionId;
+  const { modeLabel, focus } = deriveMode(session?.input.intent);
   const shots = preview?.screenshots ?? [];
   const selected =
     shots.find((s) => s.id === selectedShotId) ??
@@ -265,12 +313,31 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       <header className="session-header">
         <div>
           <h1 className="session-title">{host}</h1>
-          <p className="session-sub mono">{sessionId}</p>
+          <p className="session-sub mono">
+            {sessionId}
+            {modeLabel && (
+              <>
+                {" · "}
+                <span className="session-mode">{modeLabel}</span>
+              </>
+            )}
+            {focus && (
+              <>
+                {" · "}
+                <span className="session-focus">Focus: {focus}</span>
+              </>
+            )}
+          </p>
         </div>
         <div className="session-status" data-testid="session-status">
           <span className={`status-chip status-${(session?.status ?? "CREATED").toLowerCase()}`}>
             {session ? statusLabel(session.status) : "Loading"}
           </span>
+          {session?.authenticated === true && (
+            <span className="transport-dot live" data-testid="auth-badge">
+              signed in
+            </span>
+          )}
           {transport === "polling" && <span className="transport-dot">reconnecting</span>}
           {transport === "sse" && <span className="transport-dot live">live</span>}
         </div>
@@ -383,6 +450,42 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
           </aside>
         )}
       </section>
+
+      {session !== null && (
+        <section className="panel followup-panel">
+          <h2>Follow-up runs</h2>
+          <p className="pipeline-intro">
+            Start a new session on the same URL with different emphasis — FORGE will explore and
+            report again using these settings.
+          </p>
+          <div className="followup-actions">
+            <button
+              type="button"
+              className="btn followup-btn"
+              disabled={spawning !== null}
+              onClick={() => void spawnFollowUp("full")}
+            >
+              {spawning === "full" ? "Starting full run…" : "Full run"}
+            </button>
+            <button
+              type="button"
+              className="btn followup-btn"
+              disabled={spawning !== null}
+              onClick={() => void spawnFollowUp("login")}
+            >
+              {spawning === "login" ? "Starting login smoke…" : "Login smoke"}
+            </button>
+            <button
+              type="button"
+              className="btn followup-btn"
+              disabled={spawning !== null}
+              onClick={() => void spawnFollowUp("explore")}
+            >
+              {spawning === "explore" ? "Starting explore-only…" : "Explore only"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {terminal && session !== null && (
         <div className="panel finish-card" data-testid="pipeline-complete">

@@ -13,6 +13,7 @@ export const FORGE_AGENT_EXPLORER_VERSION = "0.0.0";
 
 export {
   DEFAULT_FRONTIER_BUDGETS,
+  THOROUGH_FRONTIER_BUDGETS,
   chooseBatchFallback,
   isOffOrigin,
   resolveUrl,

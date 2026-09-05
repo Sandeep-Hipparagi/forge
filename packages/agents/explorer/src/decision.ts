@@ -24,13 +24,16 @@ export const EXPLORER_SYSTEM = [
   "You are FORGE's Explorer. Your only job is choosing which unvisited affordances",
   "are worth exercising next. Perception, signatures, and the destructive deny-list",
   "are computed for you — never invent them.",
+  "Prefer thorough coverage: exercise every safe button, link, tab, and form control",
+  "in the batch unless it is clearly destructive or off-origin.",
   "Call emit_exploration_decision with the refs to exercise (in order) and a one-line reason each.",
-  "Set stop=true only when the remaining frontier is clearly not worth exploring.",
+  "Set stop=true only when the remaining frontier is empty of useful navigation —",
+  "do not stop early while unvisited buttons or pages remain.",
 ].join(" ");
 
 export const EXPLORER_CEILINGS = {
   toolCalls: 40,
-  modelTurns: 8,
-  wallClockMs: 90_000,
+  modelTurns: 100,
+  wallClockMs: 900_000,
   maxTokens: 2_000,
 } as const;
