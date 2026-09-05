@@ -17,7 +17,10 @@ if (command === "eval") {
   )
     process.exit(1);
   const replay = await runReplayCase();
-  if (replay.status !== "COMPLETED" || replay.eventSeq.length !== 0)
+  if (
+    replay.status !== "COMPLETED" ||
+    replay.eventSeq.join(",") !== "0,1,2,3,4"
+  )
     process.exit(1);
   console.log(`EC-00 fixture replay: PASS · ${config.version}`);
   process.exit(0);
