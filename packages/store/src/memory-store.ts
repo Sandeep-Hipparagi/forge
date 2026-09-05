@@ -1,10 +1,24 @@
 import { createHash } from "node:crypto";
 import type { Evidence, Session, SessionEvent } from "@forge/core";
 
+interface LapRecord {
+  id: string;
+  sessionId: string;
+  [key: string]: unknown;
+}
+
+interface ReportRecord {
+  id: string;
+  sessionId: string;
+  [key: string]: unknown;
+}
+
 export class MemoryStore {
   readonly sessions = new Map<string, Session>();
   readonly events = new Map<string, SessionEvent[]>();
   readonly evidence = new Map<string, Evidence>();
+  readonly laps = new Map<string, LapRecord>();
+  readonly reports = new Map<string, ReportRecord>();
 
   createSession(session: Session): void {
     if (this.sessions.has(session.id))
@@ -42,6 +56,34 @@ export class MemoryStore {
     if (existing) return existing;
     this.evidence.set(evidence.id, evidence);
     return evidence;
+  }
+
+  getEvidence(sessionId: string): Evidence[] {
+    return [...this.evidence.values()].filter(
+      (item) => item.sessionId === sessionId,
+    );
+  }
+
+  createLap(lap: LapRecord): void {
+    this.laps.set(lap.id, lap);
+  }
+
+  getLap(id: string): LapRecord | undefined {
+    return this.laps.get(id);
+  }
+
+  getLapsBySession(sessionId: string): LapRecord[] {
+    return [...this.laps.values()].filter((lap) => lap.sessionId === sessionId);
+  }
+
+  createReport(report: ReportRecord): void {
+    this.reports.set(report.id, report);
+  }
+
+  getReportBySession(sessionId: string): ReportRecord | undefined {
+    return [...this.reports.values()].find(
+      (report) => report.sessionId === sessionId,
+    );
   }
 }
 

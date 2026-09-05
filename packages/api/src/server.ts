@@ -1,6 +1,6 @@
 import { createServer, type Server } from "node:http";
 import { defaultSessionConfig, SessionInput, type Session } from "@forge/core";
-import { runStubSession } from "@forge/orchestrator";
+import { runStubSession, type SessionStore } from "@forge/orchestrator";
 import { MemoryStore, sha256 } from "@forge/store";
 
 const sendJson = (
@@ -13,9 +13,39 @@ const sendJson = (
   response.end(JSON.stringify(body));
 };
 
+interface LapRecord {
+  id: string;
+  sessionId: string;
+  [key: string]: unknown;
+}
+
+interface ReportRecord {
+  id: string;
+  sessionId: string;
+  [key: string]: unknown;
+}
+
+function hasGetLapsBySession(store: SessionStore): store is SessionStore & {
+  getLapsBySession(sessionId: string): LapRecord[];
+} {
+  return typeof store.getLapsBySession === "function";
+}
+
+function hasGetReportBySession(store: SessionStore): store is SessionStore & {
+  getReportBySession(sessionId: string): ReportRecord | undefined;
+} {
+  return typeof store.getReportBySession === "function";
+}
+
+function hasGetEvidence(
+  store: SessionStore,
+): store is SessionStore & { getEvidence(sessionId: string): unknown[] } {
+  return typeof store.getEvidence === "function";
+}
+
 export const createApiServer = (
-  store = new MemoryStore(),
-): { server: Server; store: MemoryStore } => {
+  store: SessionStore = new MemoryStore(),
+): { server: Server; store: SessionStore } => {
   let counter = 0;
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
@@ -74,25 +104,60 @@ export const createApiServer = (
       queueMicrotask(() => runStubSession(store, id));
       return;
     }
-    const match = url.pathname.match(
-      /^\/api\/sessions\/(ses_[a-z0-9]+)(?:\/(events|stream))?$/,
+    const sessionMatch = url.pathname.match(
+      /^\/api\/sessions\/(ses_[a-z0-9]+)(?:\/(events|stream|laps|report|evidence))?$/,
     );
-    if (match) {
-      const sessionId = match[1];
+    if (sessionMatch) {
+      const sessionId = sessionMatch[1];
       if (!sessionId)
         return sendJson(response, 404, { error: { code: "NOT_FOUND" } });
       const session = store.sessions.get(sessionId);
       if (!session)
         return sendJson(response, 404, { error: { code: "NOT_FOUND" } });
-      if (match[2] === "events")
-        return sendJson(response, 200, { events: store.getEvents(session.id) });
-      if (match[2] === "stream") {
+      const subPath = sessionMatch[2];
+      const sinceParam = url.searchParams.get("since");
+      const since = sinceParam ? parseInt(sinceParam, 10) : -1;
+      if (subPath === "events")
+        return sendJson(response, 200, {
+          events: store.getEvents(session.id, since),
+        });
+      if (subPath === "stream") {
         response.setHeader("content-type", "text/event-stream");
-        for (const event of store.getEvents(session.id))
+        response.setHeader("cache-control", "no-cache");
+        response.setHeader("connection", "keep-alive");
+        for (const event of store.getEvents(session.id, since))
           response.write(
-            `id: ${event.seq}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
+            `id: ${event.seq ?? event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
           );
         return response.end();
+      }
+      if (subPath === "laps") {
+        if (!hasGetLapsBySession(store))
+          return sendJson(response, 501, {
+            error: { code: "NOT_IMPLEMENTED" },
+          });
+        return sendJson(response, 200, {
+          laps: store.getLapsBySession(session.id),
+        });
+      }
+      if (subPath === "report") {
+        if (!hasGetReportBySession(store))
+          return sendJson(response, 501, {
+            error: { code: "NOT_IMPLEMENTED" },
+          });
+        const report = store.getReportBySession(session.id);
+        if (!report)
+          return sendJson(response, 404, { error: { code: "NOT_FOUND" } });
+        return sendJson(response, 200, report);
+      }
+      if (subPath === "evidence") {
+        if (!hasGetEvidence(store))
+          return sendJson(response, 501, {
+            error: { code: "NOT_IMPLEMENTED" },
+          });
+        return sendJson(response, 200, {
+          evidence: store.getEvidence(session.id),
+        });
       }
       return sendJson(response, 200, session);
     }
