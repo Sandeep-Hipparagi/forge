@@ -167,7 +167,10 @@ export const createApiServer = (
             message: "URL host is not allowed",
           },
         });
-      const id = `ses_${String(counter++).padStart(8, "0")}`;
+      let id = "";
+      do {
+        id = `ses_${String(counter++).padStart(8, "0")}`;
+      } while (store.sessions.has(id) || store.getSession?.(id));
       const { password: _password, ...input } = inputResult.data;
       void _password;
       const session: Session = {
