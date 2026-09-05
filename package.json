@@ -1,0 +1,28 @@
+{
+  "name": "forge",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=22.11.0 <23",
+    "pnpm": ">=10.12.0 <11"
+  },
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "typecheck": "tsc --noEmit --pretty false",
+    "format:check": "prettier --check .",
+    "lint": "pnpm run format:check && depcruise --config .dependency-cruiser.cjs packages --output-type err-long",
+    "test": "vitest run",
+    "eval": "pnpm --filter @forge/cli forge eval",
+    "demo:check": "pnpm run eval",
+    "verify": "pnpm run doctor && pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run eval"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "dependency-cruiser": "16.10.4",
+    "prettier": "3.5.3",
+    "typescript": "5.8.3",
+    "vitest": "3.1.2",
+    "zod": "3.24.3"
+  }
+}

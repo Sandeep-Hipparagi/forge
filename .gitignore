@@ -14,5 +14,6 @@ apps/sut/state/
 *.db-shm
 
 *.tsbuildinfo
+coverage/
 .DS_Store
 freeze.manifest.json
