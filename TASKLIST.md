@@ -180,22 +180,22 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph2.4 — The frontier
 
-- [ ] **Test** all four `haltReason` values are reachable, and termination is guaranteed for each (`FR-107`)
-- [ ] **Build** the frontier loop, deduplication, the origin scope (`FR-109`), the politeness throttle ([09 §3](docs/03-algorithms/09-exploration-and-prioritisation.md), [§4](docs/03-algorithms/09-exploration-and-prioritisation.md))
-- [ ] **Verify** limits are counters in a `for` loop, not prompt instructions ([06 §2.2](docs/02-architecture/06-agent-contracts.md))
+- [x] **Test** all four `haltReason` values are reachable, and termination is guaranteed for each (`FR-107`)
+- [x] **Build** the frontier loop, deduplication, the origin scope (`FR-109`), the politeness throttle ([09 §3](docs/03-algorithms/09-exploration-and-prioritisation.md), [§4](docs/03-algorithms/09-exploration-and-prioritisation.md))
+- [x] **Verify** limits are counters in a `for` loop, not prompt instructions ([06 §2.2](docs/02-architecture/06-agent-contracts.md))
 
 ### Ph2.5 — Clustering and ranking
 
-- [ ] **Test** `I-17` — `rank()` returns an identical order across **five** invocations on one stored map
-- [ ] **Test** `TG-2`'s degrade: zero capabilities yields one synthetic capability, never `ERROR`
-- [ ] **Build** nav-stripping clustering ([09 §5](docs/03-algorithms/09-exploration-and-prioritisation.md)) and six-factor risk ranking ([09 §6](docs/03-algorithms/09-exploration-and-prioritisation.md))
-- [ ] **Verify** the `EC-01` backlog order: Checkout · Sign-in · Account Orders · Cart · Browse
+- [x] **Test** `I-17` — `rank()` returns an identical order across **five** invocations on one stored map
+- [x] **Test** `TG-2`'s degrade: zero capabilities yields one synthetic capability, never `ERROR`
+- [x] **Build** nav-stripping clustering ([09 §5](docs/03-algorithms/09-exploration-and-prioritisation.md)) and six-factor risk ranking ([09 §6](docs/03-algorithms/09-exploration-and-prioritisation.md))
+- [x] **Verify** the `EC-01` backlog order: Checkout · Sign-in · Account Orders · Cart · Browse
 
 ### Ph2.6 — The agent loop, last
 
-- [ ] **Build** `packages/agents/explorer` on the `Ph1.4` harness — the model chooses _what to visit next_, nothing else ([06 §4.1](docs/02-architecture/06-agent-contracts.md))
-- [ ] **Build** the breadth-first deterministic fallback
-- [ ] **Verify** `pnpm forge eval --case EC-02` — **zero model calls**, `source: "deterministic"`, exit 0
+- [x] **Build** `packages/agents/explorer` on the `Ph1.4` harness — the model chooses _what to visit next_, nothing else ([06 §4.1](docs/02-architecture/06-agent-contracts.md))
+- [x] **Build** the breadth-first deterministic fallback
+- [x] **Verify** `pnpm forge eval --case EC-02` — **zero model calls**, `source: "deterministic"`, exit 0
 
 > ### ⏸ Ph2 exit gate
 >

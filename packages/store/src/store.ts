@@ -3,12 +3,16 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  Affordance,
   Capability,
+  CapabilityMap,
   Evidence,
   Lap,
   Session,
   SessionEvent,
+  State,
   StoredSessionInput,
+  Transition,
   type ParsedSessionInput,
   type RunContext,
   type SessionStatus,
@@ -223,6 +227,47 @@ export class ForgeStore {
     return this.getSession(id)!;
   }
 
+  /**
+   * Ensure a session has a persisted storageState JSON file and its path recorded.
+   * The producer is called at most once per session; subsequent calls reuse the path.
+   *
+   * This does NOT persist any credentials itself — it simply writes the opaque
+   * storageState blob returned by the producer under `.auth/state.json` and
+   * records the relative path on the session row.
+   */
+  async ensureStorageState(sessionId: string, produce: () => Promise<unknown>): Promise<string> {
+    const session = this.getSession(sessionId);
+    if (session === null) throw new Error(`Session not found: ${sessionId}`);
+    if (session.storageStatePath) {
+      return session.storageStatePath;
+    }
+
+    const relativePath = `artifacts/sessions/${sessionId}/.auth/state.json`;
+    const value = await produce();
+    const content = typeof value === "string" ? value : `${JSON.stringify(value)}\n`;
+
+    this.safeWrite(relativePath, content);
+
+    const result = this.database
+      .prepare("UPDATE sessions SET storage_state_path = ? WHERE id = ?")
+      .run(relativePath, sessionId);
+    if (result.changes !== 1) throw new Error(`Session not found: ${sessionId}`);
+
+    return relativePath;
+  }
+
+  /**
+   * Mark whether exploration reached an authenticated state (FR-003).
+   * Credentials themselves are never stored — only the boolean outcome.
+   */
+  setAuthenticated(sessionId: string, authenticated: boolean): Session {
+    const result = this.database
+      .prepare("UPDATE sessions SET authenticated = ? WHERE id = ?")
+      .run(Number(authenticated), sessionId);
+    if (result.changes !== 1) throw new Error(`Session not found: ${sessionId}`);
+    return this.getSession(sessionId)!;
+  }
+
   saveCapability(input: Capability): Capability {
     const capability = Capability.parse(input);
     this.database
@@ -249,6 +294,223 @@ export class ForgeStore {
       .prepare("SELECT doc_json FROM capabilities WHERE session_id = ? ORDER BY priority_rank, id")
       .all(sessionId) as Array<{ doc_json: string }>;
     return rows.map(({ doc_json }) => Capability.parse(JSON.parse(doc_json) as unknown));
+  }
+
+  /**
+   * Persist a full CapabilityMap into the relational tables (05 §4).
+   * Replaces any prior map rows for the session so re-explore is idempotent.
+   */
+  saveCapabilityMap(
+    map: CapabilityMap,
+    meta?: {
+      choiceSource?: "deterministic" | "llm";
+      modelCalls?: number;
+      exitReason?: string;
+    },
+  ): CapabilityMap {
+    const parsed = CapabilityMap.parse(map);
+    const tx = this.database.transaction(() => {
+      this.database.prepare("DELETE FROM capabilities WHERE session_id = ?").run(parsed.sessionId);
+      this.database.prepare("DELETE FROM transitions WHERE session_id = ?").run(parsed.sessionId);
+      this.database
+        .prepare(
+          `DELETE FROM affordances WHERE state_id IN
+           (SELECT id FROM states WHERE session_id = ?)`,
+        )
+        .run(parsed.sessionId);
+      this.database.prepare("DELETE FROM states WHERE session_id = ?").run(parsed.sessionId);
+
+      const insertState = this.database.prepare(
+        `INSERT INTO states
+         (id, session_id, signature, url, title, auth_required, snapshot_evidence_id,
+          visited_variants, discovered_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const state of parsed.states) {
+        insertState.run(
+          state.id,
+          state.sessionId,
+          state.signature,
+          state.url,
+          state.title,
+          Number(state.authRequired),
+          state.snapshotEvidenceId,
+          state.visitedVariants,
+          state.discoveredAt,
+        );
+      }
+
+      const insertAffordance = this.database.prepare(
+        `INSERT INTO affordances
+         (id, state_id, ref, role, accessible_name, kind, enabled, destructive,
+          observed_not_exercised, not_exercised_reason, bbox_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const affordance of parsed.affordances) {
+        insertAffordance.run(
+          affordance.id,
+          affordance.stateId,
+          affordance.ref,
+          affordance.role,
+          affordance.accessibleName,
+          affordance.kind,
+          Number(affordance.enabled),
+          Number(affordance.destructive),
+          Number(affordance.observedNotExercised),
+          affordance.notExercisedReason,
+          affordance.bbox === null ? null : JSON.stringify(affordance.bbox),
+        );
+      }
+
+      const insertTransition = this.database.prepare(
+        `INSERT INTO transitions
+         (id, session_id, from_state_id, to_state_id, via_affordance_id, action, observed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      );
+      for (const transition of parsed.transitions) {
+        insertTransition.run(
+          transition.id,
+          transition.sessionId,
+          transition.fromStateId,
+          transition.toStateId,
+          transition.viaAffordanceId,
+          transition.action,
+          transition.observedAt,
+        );
+      }
+
+      for (const capability of parsed.capabilities) {
+        this.saveCapability(capability);
+      }
+
+      this.insertEvent(
+        {
+          sessionId: parsed.sessionId,
+          lapId: null,
+          actor: "explorer",
+          type: "explore.finished",
+          payload: {
+            frontier: parsed.frontier,
+            authenticated: parsed.authenticated,
+            stateCount: parsed.states.length,
+            capabilityCount: parsed.capabilities.length,
+            choiceSource: meta?.choiceSource ?? null,
+            modelCalls: meta?.modelCalls ?? null,
+            exitReason: meta?.exitReason ?? null,
+            capabilities: parsed.capabilities.map(({ name, priorityRank }) => ({
+              name,
+              priorityRank,
+            })),
+          },
+        },
+        [],
+      );
+    });
+    tx();
+    return parsed;
+  }
+
+  getCapabilityMap(sessionId: string): CapabilityMap | null {
+    const session = this.getSession(sessionId);
+    if (session === null) return null;
+
+    const stateRows = this.database
+      .prepare("SELECT * FROM states WHERE session_id = ? ORDER BY discovered_at, id")
+      .all(sessionId) as Array<Record<string, unknown>>;
+    if (stateRows.length === 0) return null;
+
+    const states: State[] = stateRows.map((row) => {
+      const affordanceIds = (
+        this.database
+          .prepare("SELECT id FROM affordances WHERE state_id = ? ORDER BY id")
+          .all(String(row.id)) as Array<{ id: string }>
+      ).map(({ id }) => id);
+      return State.parse({
+        id: row.id,
+        sessionId: row.session_id,
+        signature: row.signature,
+        url: row.url,
+        title: row.title,
+        authRequired: Boolean(row.auth_required),
+        snapshotEvidenceId: row.snapshot_evidence_id,
+        affordanceIds,
+        visitedVariants: row.visited_variants,
+        discoveredAt: row.discovered_at,
+      });
+    });
+
+    const affordances = (
+      this.database
+        .prepare(
+          `SELECT a.* FROM affordances a
+           INNER JOIN states s ON s.id = a.state_id
+           WHERE s.session_id = ?
+           ORDER BY a.id`,
+        )
+        .all(sessionId) as Array<Record<string, unknown>>
+    ).map((row) =>
+      Affordance.parse({
+        id: row.id,
+        stateId: row.state_id,
+        ref: row.ref,
+        role: row.role,
+        accessibleName: row.accessible_name,
+        kind: row.kind,
+        enabled: Boolean(row.enabled),
+        destructive: Boolean(row.destructive),
+        observedNotExercised: Boolean(row.observed_not_exercised),
+        notExercisedReason: row.not_exercised_reason,
+        bbox: row.bbox_json === null ? null : JSON.parse(String(row.bbox_json)),
+      }),
+    );
+
+    const transitions = (
+      this.database
+        .prepare("SELECT * FROM transitions WHERE session_id = ? ORDER BY observed_at, id")
+        .all(sessionId) as Array<Record<string, unknown>>
+    ).map((row) =>
+      Transition.parse({
+        id: row.id,
+        sessionId: row.session_id,
+        fromStateId: row.from_state_id,
+        toStateId: row.to_state_id,
+        viaAffordanceId: row.via_affordance_id,
+        action: row.action,
+        observedAt: row.observed_at,
+      }),
+    );
+
+    const frontierEvent = [...this.listEvents(sessionId)]
+      .reverse()
+      .find(
+        (event) =>
+          event.type === "explore.finished" &&
+          event.payload !== null &&
+          typeof event.payload === "object" &&
+          "frontier" in event.payload,
+      );
+    const frontierPayload =
+      frontierEvent?.payload !== undefined &&
+      typeof frontierEvent.payload === "object" &&
+      frontierEvent.payload !== null &&
+      "frontier" in frontierEvent.payload
+        ? (frontierEvent.payload as { frontier: CapabilityMap["frontier"] }).frontier
+        : {
+            discovered: states.length,
+            explored: transitions.length,
+            haltReason: "EXHAUSTED" as const,
+          };
+
+    return CapabilityMap.parse({
+      sessionId,
+      authenticated: session.authenticated,
+      states,
+      affordances,
+      transitions,
+      capabilities: this.listCapabilities(sessionId),
+      apiHints: [],
+      frontier: frontierPayload,
+    });
   }
 
   createLap(input: Lap): Lap {

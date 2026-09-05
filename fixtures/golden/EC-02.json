@@ -1,0 +1,48 @@
+{
+  "id": "EC-02",
+  "title": "Exploration with the model gone",
+  "seed": 20260905,
+  "mode": "explore",
+  "given": {
+    "reset": true,
+    "session": {
+      "url": "https://aperture.test/",
+      "username": "standard_user",
+      "password": "secret_sauce",
+      "budget": {
+        "maxCapabilities": 5,
+        "maxDurationMs": 90000,
+        "maxUsd": 0.01
+      }
+    },
+    "env": {
+      "FORGE_LLM_ENABLED": "false"
+    }
+  },
+  "expect": {
+    "session": {
+      "status": "COMPLETED",
+      "exitCode": 0,
+      "defectsFound": 0
+    },
+    "explore": {
+      "choiceSource": "deterministic",
+      "modelCalls": 0,
+      "haltReason": "EXHAUSTED",
+      "minCapabilities": 2,
+      "minStates": 4,
+      "productVariantsCollapsed": true,
+      "denyListObserved": true
+    }
+  },
+  "requirements": [
+    "FR-101",
+    "FR-105",
+    "FR-106",
+    "FR-107",
+    "FR-108",
+    "I-17",
+    "I-20",
+    "NFR-2"
+  ]
+}

@@ -12,6 +12,7 @@
   "dependencies": {
     "@forge/agent-harness": "workspace:*",
     "@forge/core": "workspace:*",
-    "@forge/perception": "workspace:*"
+    "@forge/perception": "workspace:*",
+    "zod": "^3.25.76"
   }
 }

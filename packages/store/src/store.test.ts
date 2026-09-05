@@ -138,9 +138,36 @@ describe("ForgeStore invariants", () => {
     );
   });
 
-  it("never persists session passwords or secrets in events and evidence", () => {
+  it("writes storageState once and reuses it without re-logins", async () => {
+    const session = createSession();
+    let calls = 0;
+    const firstPath = await store.ensureStorageState(session.id, async () => {
+      calls += 1;
+      return { cookies: [{ name: "sid", value: "abc" }], origins: [] };
+    });
+    const secondPath = await store.ensureStorageState(session.id, async () => {
+      calls += 1;
+      return { cookies: [{ name: "sid", value: "xyz" }], origins: [] };
+    });
+
+    expect(firstPath).toBe(secondPath);
+    expect(calls).toBe(1);
+
+    const reloaded = store.getSession(session.id)!;
+    expect(reloaded.storageStatePath).toBe(firstPath);
+    expect(firstPath).toContain(`artifacts/sessions/${session.id}/.auth/state.json`);
+
+    const content = readFileSync(join(directory, firstPath), "utf8");
+    expect(content).toContain('"cookies"');
+  });
+
+  it("never persists session passwords or secrets in events and artifacts", async () => {
     const session = createSession(SECRET);
     expect(session.input).not.toHaveProperty("password");
+    await store.ensureStorageState(session.id, async () => ({
+      cookies: [],
+      origins: [],
+    }));
     store.appendEvent(
       {
         sessionId: session.id,
@@ -166,12 +193,22 @@ describe("ForgeStore invariants", () => {
     );
     store.close();
 
-    const persisted = [
-      readFileSync(databasePath),
-      ...readdirSync(join(directory, "artifacts", "sessions", session.id, "evidence")).map((name) =>
-        readFileSync(join(directory, "artifacts", "sessions", session.id, "evidence", name)),
-      ),
-    ];
+    function readAllFiles(root: string): Buffer[] {
+      const entries = readdirSync(root, { withFileTypes: true });
+      const files: Buffer[] = [];
+      for (const entry of entries) {
+        const full = join(root, entry.name);
+        if (entry.isDirectory()) {
+          files.push(...readAllFiles(full));
+        } else {
+          files.push(readFileSync(full));
+        }
+      }
+      return files;
+    }
+
+    const artifactsRoot = join(directory, "artifacts");
+    const persisted = [readFileSync(databasePath), ...readAllFiles(artifactsRoot)];
     expect(Buffer.concat(persisted).includes(Buffer.from(SECRET))).toBe(false);
 
     store = new ForgeStore({ databasePath, repositoryRoot: directory, context: context() });

@@ -1,0 +1,58 @@
+{
+  "snapshot": {
+    "url": "https://aperture.test/login",
+    "title": "Aperture Checkout · Sign in",
+    "root": {
+      "role": "main",
+      "name": null,
+      "children": [
+        {
+          "role": "heading",
+          "name": "Sign in to Aperture",
+          "children": []
+        },
+        {
+          "role": "form",
+          "name": "Sign in",
+          "ref": "f1",
+          "children": [
+            {
+              "role": "textbox",
+              "name": "Email address",
+              "ref": "e1"
+            },
+            {
+              "role": "textbox",
+              "name": "Password",
+              "ref": "e2"
+            },
+            {
+              "role": "button",
+              "name": "Sign in",
+              "ref": "b1"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dom": {
+    "inputs": {
+      "e1": {
+        "type": "email",
+        "autocomplete": "email",
+        "name": "email",
+        "id": "email",
+        "placeholder": "you@example.com"
+      },
+      "e2": {
+        "type": "password",
+        "autocomplete": "current-password",
+        "name": "password",
+        "id": "password",
+        "placeholder": "••••••••"
+      }
+    }
+  }
+}
+

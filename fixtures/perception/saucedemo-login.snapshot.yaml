@@ -1,0 +1,53 @@
+{
+  "snapshot": {
+    "url": "https://saucedemo.test/",
+    "title": "Swag Labs",
+    "root": {
+      "role": "main",
+      "name": null,
+      "children": [
+        {
+          "role": "form",
+          "name": "Login",
+          "ref": "f1",
+          "children": [
+            {
+              "role": "textbox",
+              "name": "Username",
+              "ref": "e1"
+            },
+            {
+              "role": "textbox",
+              "name": "Password",
+              "ref": "e2"
+            },
+            {
+              "role": "button",
+              "name": "Login",
+              "ref": "b1"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dom": {
+    "inputs": {
+      "e1": {
+        "type": "text",
+        "autocomplete": "username",
+        "name": "user-name",
+        "id": "user-name",
+        "placeholder": "Username"
+      },
+      "e2": {
+        "type": "password",
+        "autocomplete": "current-password",
+        "name": "password",
+        "id": "password",
+        "placeholder": "Password"
+      }
+    }
+  }
+}
+

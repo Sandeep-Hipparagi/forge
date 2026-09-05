@@ -4,6 +4,11 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "references": [{ "path": "../core" }, { "path": "../evals" }, { "path": "../orchestrator" }],
+  "references": [
+    { "path": "../core" },
+    { "path": "../evals" },
+    { "path": "../orchestrator" },
+    { "path": "../store" }
+  ],
   "include": ["src"]
 }
