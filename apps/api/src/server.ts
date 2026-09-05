@@ -3,6 +3,7 @@ import {
   buildReport,
   demoReportInput,
   renderMarkdown,
+  stubReportInput,
   type Lap,
   type ReportInput,
   type RunContext,
@@ -10,10 +11,16 @@ import {
   type SessionEvent,
   type SessionStatus,
 } from "@forge/core";
-import { LapMachine, SessionMachine, exitCodeFor, tg1CanExplore } from "@forge/orchestrator";
+import {
+  LapMachine,
+  SessionMachine,
+  exitCodeFor,
+  runLiveSession,
+  tg1CanExplore,
+} from "@forge/orchestrator";
 import type { ForgeStore } from "@forge/store";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { z } from "zod";
 type Subscriber = (event: SessionEvent) => void;
@@ -44,6 +51,8 @@ export type ForgeServerOptions = {
   allowedHosts?: readonly string[];
   webOrigin?: string;
   autoRun?: boolean;
+  /** When true, POST /sessions with live:true runs the real browser pipeline. */
+  liveSessions?: boolean;
   /** Repository root — used to load artifacts/sessions/<id>/report-input.json */
   repositoryRoot?: string;
 };
@@ -84,12 +93,32 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
   const bus = new EventBus();
   const allowedHosts = options.allowedHosts ?? [];
   const webOrigin = options.webOrigin ?? "http://localhost:3000";
+  const liveSessions =
+    options.liveSessions ?? (process.env.FORGE_LIVE_SESSIONS ?? "false").toLowerCase() === "true";
+  const repositoryRoot = options.repositoryRoot ?? process.cwd();
 
   app.addHook("onSend", async (request, reply, payload) => {
     if (request.headers.origin === webOrigin) {
       void reply.header("Access-Control-Allow-Origin", webOrigin);
+      void reply.header(
+        "Access-Control-Allow-Headers",
+        "content-type, idempotency-key, last-event-id",
+      );
+      void reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     }
     return payload;
+  });
+
+  app.options("/*", async (request, reply) => {
+    if (request.headers.origin === webOrigin) {
+      void reply.header("Access-Control-Allow-Origin", webOrigin);
+      void reply.header(
+        "Access-Control-Allow-Headers",
+        "content-type, idempotency-key, last-event-id",
+      );
+      void reply.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    }
+    return reply.code(204).send();
   });
 
   async function runStubSession(sessionId: string): Promise<void> {
@@ -204,6 +233,24 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
         lapMachine.transition(next);
       }
       sessionMachine.transition("REPORTING");
+
+      const reportPath = join(
+        repositoryRoot,
+        "artifacts",
+        "sessions",
+        sessionId,
+        "report-input.json",
+      );
+      mkdirSync(dirname(reportPath), { recursive: true });
+      const stubInput = stubReportInput(sessionId, {
+        url: session!.input.url,
+        generatedAt: options.context.clock.now().toISOString(),
+        reportId: options.context.ids.next("rpt"),
+        capabilityId: capability.id,
+        gapId: options.context.ids.next("gap"),
+      });
+      writeFileSync(reportPath, `${JSON.stringify(stubInput, null, 2)}\n`, "utf8");
+
       sessionMachine.transition("COMPLETED");
     } catch (error) {
       const committed = options.store.commitSessionTransition(
@@ -229,6 +276,18 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     }
   }
 
+  async function kickOffLiveSession(sessionId: string): Promise<void> {
+    await runLiveSession({
+      store: options.store,
+      context: options.context,
+      sessionId,
+      repositoryRoot,
+      maxLaps: 1,
+      headless: true,
+      onEvent: (event) => bus.publish(event),
+    });
+  }
+
   app.post("/api/sessions", async (request, reply) => {
     const parsed = SessionInput.safeParse(request.body);
     if (!parsed.success) {
@@ -237,6 +296,16 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
           code: "VALIDATION_FAILED",
           message: "Session input is invalid",
           issues: parsed.error.issues,
+          requestId: request.id,
+        },
+      });
+    }
+    if (parsed.data.live === true && !liveSessions) {
+      return reply.code(400).send({
+        error: {
+          code: "LIVE_DISABLED",
+          message:
+            "Live sessions are disabled. Set FORGE_LIVE_SESSIONS=true on the API, then retry with live: true.",
           requestId: request.id,
         },
       });
@@ -264,7 +333,11 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     }
     void reply.header("Location", `/api/sessions/${session.id}`);
     if (options.autoRun !== false) {
-      setImmediate(() => void runStubSession(session.id));
+      if (parsed.data.live === true) {
+        setImmediate(() => void kickOffLiveSession(session.id));
+      } else {
+        setImmediate(() => void runStubSession(session.id));
+      }
     }
     return reply.code(201).send(sessionResponse(session));
   });
@@ -336,12 +409,16 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     if (session === null) return notFound(reply, "Session");
     const lastEventId = Number.parseInt(String(request.headers["last-event-id"] ?? "-1"), 10);
     reply.hijack();
-    reply.raw.writeHead(200, {
+    const sseHeaders: Record<string, string> = {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-store",
       "X-Accel-Buffering": "no",
       Connection: "keep-alive",
-    });
+    };
+    if (request.headers.origin === webOrigin) {
+      sseHeaders["Access-Control-Allow-Origin"] = webOrigin;
+    }
+    reply.raw.writeHead(200, sseHeaders);
     reply.raw.write("retry: 2000\n\n");
     const write = (event: SessionEvent): void => {
       reply.raw.write(`id: ${event.seq}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
@@ -415,11 +492,47 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
   app.get<{ Params: { id: string } }>("/api/evidence/:id/raw", async (request, reply) => {
     const stored = options.store.readEvidenceContent(request.params.id);
     if (stored === null) return notFound(reply, "Evidence");
+    const type =
+      stored.evidence.type === "SCREENSHOT" || stored.evidence.type === "CROP"
+        ? "image/png"
+        : stored.evidence.type === "DOM" || stored.evidence.type === "SNAPSHOT"
+          ? "text/plain; charset=utf-8"
+          : "application/octet-stream";
     void reply
       .header("ETag", `"sha256-${stored.evidence.sha256}"`)
       .header("Cache-Control", "public, max-age=31536000, immutable")
-      .type("application/octet-stream");
+      .type(type);
     return reply.send(stored.content);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/sessions/:id/live", async (request, reply) => {
+    const session = options.store.getSession(request.params.id);
+    if (session === null) return notFound(reply, "Session");
+    const shots = options.store.listScreenshots(session.id);
+    const shot = shots[0] ?? null;
+    const events = options.store.listEvents(session.id);
+    const latestEvidence = [...events].reverse().find((e) => e.type === "evidence.captured");
+    const map = options.store.getCapabilityMap(session.id);
+    return {
+      live: session.input.live === true,
+      status: session.status,
+      latestScreenshotId: shot?.id ?? null,
+      latestScreenshotUrl: shot !== null ? `/api/evidence/${shot.id}/raw` : null,
+      latestLabel: shot?.label ?? null,
+      latestEvidencePayload: latestEvidence?.payload ?? null,
+      liveSessionsEnabled: liveSessions,
+      screenshotCount: shots.length,
+      stateCount: map?.states.length ?? 0,
+      screenshots: shots.slice(0, 48).map((row) => ({
+        id: row.id,
+        url: `/api/evidence/${row.id}/raw`,
+        label: row.label,
+        capturedAt: row.capturedAt,
+        pageUrl: typeof row.metadata.url === "string" ? row.metadata.url : null,
+        action: typeof row.metadata.action === "string" ? row.metadata.action : null,
+        phase: typeof row.metadata.phase === "string" ? row.metadata.phase : null,
+      })),
+    };
   });
 
   for (const path of [
@@ -437,12 +550,27 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
   }
 
   function sessionReport(sessionId: string) {
-    const root = options.repositoryRoot ?? process.cwd();
-    const inputPath = join(root, "artifacts", "sessions", sessionId, "report-input.json");
-    const input: ReportInput = existsSync(inputPath)
-      ? (JSON.parse(readFileSync(inputPath, "utf8")) as ReportInput)
-      : demoReportInput(sessionId);
-    return buildReport(input);
+    const inputPath = join(repositoryRoot, "artifacts", "sessions", sessionId, "report-input.json");
+    if (existsSync(inputPath)) {
+      return buildReport(JSON.parse(readFileSync(inputPath, "utf8")) as ReportInput);
+    }
+    // Demo fixture only for the curated demo session — never for real runs.
+    if (sessionId === "ses_demo") {
+      return buildReport(demoReportInput(sessionId));
+    }
+    const session = options.store.getSession(sessionId);
+    if (session !== null) {
+      return buildReport(
+        stubReportInput(sessionId, {
+          url: session.input.url,
+          generatedAt: session.finishedAt ?? session.createdAt,
+          reportId: options.context.ids.next("rpt"),
+          capabilityId: options.context.ids.next("cap"),
+          gapId: options.context.ids.next("gap"),
+        }),
+      );
+    }
+    return buildReport(demoReportInput(sessionId));
   }
 
   app.get<{ Params: { id: string } }>("/api/sessions/:id/report", async (request) => {
@@ -478,11 +606,12 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     }),
   );
 
-  app.get("/api/health", async () => ({ ok: true }));
+  app.get("/api/health", async () => ({ ok: true, liveSessions }));
   app.get("/api/doctor", async () => ({
     ok: true,
     bind: "127.0.0.1",
     persistence: "sqlite",
+    liveSessions,
   }));
 
   app.setErrorHandler((error, request, reply) => {

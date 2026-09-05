@@ -10,3 +10,4 @@ export type {
 export { renderMarkdown } from "./render.js";
 export type { RenderableReport } from "./render.js";
 export { demoReportInput } from "./demo.js";
+export { stubReportInput } from "./stub.js";

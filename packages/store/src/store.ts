@@ -677,6 +677,24 @@ export class ForgeStore {
     });
   }
 
+  /** Most recent screenshot for a session — used by the live session preview panel. */
+  latestScreenshot(sessionId: string): Evidence | null {
+    const rows = this.listScreenshots(sessionId);
+    return rows[0] ?? null;
+  }
+
+  /** All screenshots for a session, newest first. */
+  listScreenshots(sessionId: string): Evidence[] {
+    const rows = this.database
+      .prepare(
+        `SELECT * FROM evidence
+         WHERE session_id = ? AND type = 'SCREENSHOT'
+         ORDER BY captured_at DESC, id DESC`,
+      )
+      .all(sessionId) as Array<Record<string, unknown>>;
+    return rows.map((row) => this.hydrateEvidence(row));
+  }
+
   readEvidenceContent(id: string): { evidence: Evidence; content: Buffer } | null {
     const row = this.database.prepare("SELECT * FROM evidence WHERE id = ?").get(id) as
       Record<string, unknown> | undefined;

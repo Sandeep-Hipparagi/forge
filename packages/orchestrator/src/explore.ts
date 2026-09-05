@@ -24,6 +24,15 @@ export type ExploreSessionInput = {
   headless?: boolean;
   /** When false, leave the session in PRIORITISING (full pipeline). Default true for forge explore. */
   terminal?: boolean;
+  /** Persist observe screenshots when using the live browser driver. */
+  captureScreenshots?: boolean;
+  /** Override frontier budgets for live / agentic crawls. */
+  budgets?: {
+    maxStates?: number;
+    wallClockMs?: number;
+    politenessDelayMs?: number;
+    maxModelCalls?: number;
+  };
 };
 
 export type ExploreSessionResult = {
@@ -75,6 +84,7 @@ export async function exploreSession(options: {
       ...(input.intent !== undefined ? { intent: input.intent } : {}),
       mode: "autopilot",
       budget: { maxCapabilities: 20, maxDurationMs: 1_800_000, maxUsd: 2 },
+      live: true,
     });
   }
 
@@ -121,6 +131,9 @@ export async function exploreSession(options: {
           ? { storageStatePath: session.storageStatePath }
           : {}),
         ...(input.headless !== undefined ? { headless: input.headless } : { headless: true }),
+        ...(input.captureScreenshots === true
+          ? { evidence: { store, sessionId: session.id } }
+          : {}),
       });
       if (!live.ok) {
         throw new Error(live.error);
@@ -140,7 +153,16 @@ export async function exploreSession(options: {
         authenticated,
         ...(input.intent !== undefined ? { intent: input.intent } : {}),
         forceDeterministic,
-        budgets: { politenessDelayMs: input.driver ? 0 : 300 },
+        budgets: {
+          politenessDelayMs: input.driver ? 0 : (input.budgets?.politenessDelayMs ?? 300),
+          ...(input.budgets?.maxStates !== undefined ? { maxStates: input.budgets.maxStates } : {}),
+          ...(input.budgets?.wallClockMs !== undefined
+            ? { wallClockMs: input.budgets.wallClockMs }
+            : {}),
+          ...(input.budgets?.maxModelCalls !== undefined
+            ? { maxModelCalls: input.budgets.maxModelCalls }
+            : {}),
+        },
       },
       agentContext(context, model),
       driver,

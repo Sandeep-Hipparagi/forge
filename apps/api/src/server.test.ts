@@ -171,4 +171,16 @@ describe("FORGE API shell", () => {
     await listenForgeServer(app, 0);
     expect(app.addresses()).toEqual([expect.objectContaining({ address: "127.0.0.1" })]);
   });
+
+  it("rejects live sessions when live mode is off", async () => {
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/sessions",
+      payload: { url: "https://shop.test/", live: true },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      error: { code: "LIVE_DISABLED" },
+    });
+  });
 });
