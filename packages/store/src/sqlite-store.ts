@@ -22,6 +22,9 @@ export class DurableEventStore {
     this.#db = new Database(path);
     this.#db.pragma("journal_mode = WAL");
     this.#db.exec(`
+      CREATE TABLE IF NOT EXISTS durable_sessions (
+        id TEXT PRIMARY KEY, doc_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS durable_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
         type TEXT NOT NULL, payload TEXT NOT NULL, sha256 TEXT NOT NULL,
@@ -30,6 +33,25 @@ export class DurableEventStore {
       CREATE INDEX IF NOT EXISTS idx_durable_events_session_id
         ON durable_events(session_id, id);
     `);
+  }
+
+  createSession(id: string, session: unknown): void {
+    this.#db
+      .prepare("INSERT INTO durable_sessions (id, doc_json) VALUES (?, ?)")
+      .run(id, JSON.stringify(session));
+  }
+
+  getSession<T>(id: string): T | undefined {
+    const row = this.#db
+      .prepare("SELECT doc_json FROM durable_sessions WHERE id = ?")
+      .get(id) as { doc_json: string } | undefined;
+    return row ? (JSON.parse(row.doc_json) as T) : undefined;
+  }
+
+  updateSession(id: string, session: unknown): void {
+    this.#db
+      .prepare("UPDATE durable_sessions SET doc_json = ? WHERE id = ?")
+      .run(JSON.stringify(session), id);
   }
 
   append(
