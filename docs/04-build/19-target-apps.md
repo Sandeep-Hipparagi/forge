@@ -24,6 +24,8 @@ Each target is chosen for one property the other two lack.
 
 **T3 is dangerous.** Conduit's article pages carry *Delete Article* next to *Edit Article*. That is the exploration deny-list's reason to exist ([08 §4.1](../02-architecture/08-perception-layer.md)), and T3 is where `observedNotExercised` stops being a schema field and becomes a visible line in the report: *"we saw this and deliberately did not press it."*
 
+**Beyond these three.** Development-time validation and rehearsal can also draw on a catalogue of external, publicly reachable practice applications — bug-detection sanity checks, wider UI-pattern coverage, more raw material for a cold switch than three fixed URLs provide. None of them are canonical, none enter the `EC-nn` golden-case gate, and none change anything in this document. See [target-apps/external-platforms.md](../target-apps/external-platforms.md).
+
 ### 1.1 The rule that makes the roster meaningful
 
 **Nothing about any target appears in FORGE's code.** No selectors, no route names, no accessible-name constants, no per-target branches. Three checks keep that true rather than aspirational:
@@ -536,3 +538,4 @@ Running an autonomous crawler against an application we do not own is the part o
 - The fingerprint this DOM contract must match → [13 §6](../03-algorithms/13-triage-and-healing.md)
 - The cases that toggle these mutations → [16 §5](16-agent-test-suite.md)
 - Where `R-3` sits in the day → [22 · Demo Runbook](../05-delivery/22-demo-runbook.md)
+- Supplementary, non-canonical external validation platforms → [target-apps/external-platforms.md](../target-apps/external-platforms.md)

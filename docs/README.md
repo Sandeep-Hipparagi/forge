@@ -117,6 +117,7 @@ Every prefix, and the one document that owns it. Cite IDs; do not paraphrase the
 | `EC-nn` | Golden eval case | [16](04-build/16-agent-test-suite.md) |
 | `R-n` | Rehearsal | [16](04-build/16-agent-test-suite.md) |
 | `M-nn` | Injectable defect on the bundled target | [19](04-build/19-target-apps.md) |
+| `EXT-nn` | External validation platform — supplementary, non-canonical | [target-apps/external-platforms.md](target-apps/external-platforms.md) |
 | `RK-nn` | Risk | [23](05-delivery/23-risk-register.md) |
 | `W-n` | Open work-plan item | [00 · Work Plan §7](00-work-plan.md) |
 | `Q-n` | Open question about the event itself | [02 §13](01-foundation/02-requirements.md) |

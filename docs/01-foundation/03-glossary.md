@@ -103,7 +103,7 @@ Shared vocabulary. If two people use the same word for different things, the cod
 
 | Term | Definition |
 |---|---|
-| **Target** | The application under test. Any URL. Nothing about a specific application is hardcoded. |
+| **Target** | The application under test. Any URL. Nothing about a specific application is hardcoded. Canonical roster in [19](../04-build/19-target-apps.md); supplementary external platforms in [target-apps/external-platforms.md](../target-apps/external-platforms.md). |
 | **Mutation** | A runtime-toggleable defect injected into the bundled target to stage a demo scenario. Never a source edit. |
 | **Golden case** (`EC-nn`) | A deterministic eval scenario with a fixed expected verdict. |
 | **Rehearsal** (`R-n`) | A full drill: `R-2` is the whole demo with the API key unset; `R-3` is a cold switch to an unseen target URL. |
