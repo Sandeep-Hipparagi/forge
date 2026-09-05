@@ -1,132 +1,138 @@
-# FORGE
+# FORGE · Documentation
 
-**Autonomous Test Orchestration Agent**
+**FORGE takes a URL and a login, explores the application on its own, and builds a real test suite one capability at a time — judging its own coverage before it writes code, and refusing to heal a test when the product is what actually broke.**
 
-FORGE accepts a URL and optional login, explores the application, builds a capability map, creates and critiques a test plan, generates Playwright tests, runs them, classifies failures, heals only when the evidence permits it, and reports the result.
+The `main` branch is intentionally a documentation-only MVP baseline. The implementation workspace, dependencies, and executable checks are created from these contracts during `Ph0`; see the root [README](../README.md) for the file policy and technology setup.
 
-## Repository purpose
+Built for the Bessemer Tech Catalyst problem statement from Aivar Innovations: [_Autonomous Test Orchestration Agent_](problem-statement/problem-statment.md).
 
-The specification in [`docs/`](docs/README.md) is the source of truth: every behaviour the code has to satisfy is written down there before it is implemented. `main` started as a documentation-only baseline and now also carries the implementation, built phase by phase against [`TASKLIST.md`](TASKLIST.md).
+---
 
-**Current status: `Ph0` (pre-flight) is complete.** The workspace installs, lints, typechecks, and `pnpm doctor` is green — see [Quickstart](#quickstart) below. No product behaviour exists yet; that starts at `Ph1`. See [Status](#status) and [`TASKLIST.md`](TASKLIST.md) for exactly what is and isn't built.
+## Start here
 
-## Quickstart
+**Want the short version first?** → [FORGE story deck](forge-story.html) — a nine-slide visual walkthrough of the problem, loop, trust model, and build plan.
 
-Get a clean clone running in about five minutes.
+| You are…                  | Read, in order                                                                                                                                                                                      | Minutes |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **New to the project**    | [00 · Problem Alignment](01-foundation/00-problem-alignment.md) → [01 · Vision & Scope](01-foundation/01-vision-and-scope.md)                                                                       | 15      |
+| **Judging or evaluating** | [00 §4 rubric map](01-foundation/00-problem-alignment.md) → [01 §8 the mental model](01-foundation/01-vision-and-scope.md) → [decisions/](decisions/)                                               | 20      |
+| **Implementing**          | [04 · Architecture](02-architecture/04-system-architecture.md) → [05 · Data Model](02-architecture/05-data-model.md) → your algorithm doc → [15 · Conventions](04-build/15-repo-and-conventions.md) | 45      |
+| **Running the day**       | [00 · Work Plan](00-work-plan.md) → [20 · Execution Plan](05-delivery/20-execution-plan.md) → [23 · Risks](05-delivery/23-risk-register.md)                                                         | 20      |
+| **Presenting**            | [22 · Demo Runbook](05-delivery/22-demo-runbook.md) → [01 §9 the anti-pitch](01-foundation/01-vision-and-scope.md)                                                                                  | 15      |
 
-**Prerequisites**
+**Where are we right now?** → [00 · Work Plan](00-work-plan.md). It is the only file that tracks status, and it is updated in the same commit as the work.
 
-| Tool                           | Version                                                                 | Notes                                                                                                                                                              |
-| ------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [Git](https://git-scm.com/)    | any recent                                                              |                                                                                                                                                                    |
-| [Node.js](https://nodejs.org/) | **22.11.0** (pinned in [`.nvmrc`](.nvmrc))                              | Use [nvm](https://github.com/nvm-sh/nvm) (macOS/Linux) or [nvm-windows](https://github.com/coreybutler/nvm-windows) if your machine has a different Node installed |
-| pnpm                           | **10.12.4** (pinned in [`package.json`](package.json) `packageManager`) | Installed via Corepack, not globally                                                                                                                               |
-| Chromium                       | installed by Playwright                                                 | one command below, no separate download                                                                                                                            |
-| Anthropic API key              | optional                                                                | only for live model runs — replay/deterministic mode works with none                                                                                               |
+---
 
-**Install and verify**
+## The loop everything maps to
 
-```bash
-git clone <repository-url>
-cd forge
-
-# 1 · toolchain — skip the nvm lines if node -v already prints 22.11.0
-nvm install        # reads .nvmrc
-nvm use
-corepack enable
-corepack prepare pnpm@10.12.4 --activate
-
-# 2 · dependencies
-pnpm install
-pnpm exec playwright install chromium --with-deps
-
-# 3 · environment (no real values needed to pass doctor/verify)
-cp .env.example .env      # Windows: copy .env.example .env
-
-# 4 · prove the workspace is wired correctly
-pnpm doctor    # toolchain, browser, safety-env checks — must exit 0
-pnpm verify    # typecheck && lint && test && replay-tier eval — must exit 0
+```
+Explore → Prioritise → Plan → Critique → Generate → Run → Triage → Heal or Escalate → Verify → Report
 ```
 
-If `pnpm doctor` fails, it prints exactly which pin drifted (Node version, pnpm version, missing Chromium, or a widened safety env var) — fix that one thing and re-run.
+If a proposed feature does not sit on this loop, it is out of scope. Two steps carry the argument: **Critique**, because a plan nobody checked is a plan nobody should trust, and **Triage**, because a healer that cannot tell a broken test from a broken product is an anti-feature.
 
-**Run something**
+---
 
-```bash
-pnpm dev          # web (:3000) + api (:4000) + sut (:4100), in parallel
-pnpm dev:sut      # just the bundled target app, alone
-```
+## The documents
 
-There is no end-to-end product behaviour yet (that lands starting `Ph1`), so `pnpm dev` currently boots empty scaffolds — useful to confirm the toolchain works, not to see FORGE do anything.
+### [01-foundation/](01-foundation/) — what and why
 
-## What to read first
+|     | Document                                                   | In one line                                                                                     |
+| --- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 00  | [Problem Alignment](01-foundation/00-problem-alignment.md) | The brief mapped clause by clause; the rubric mapped weight by weight. **The source of truth.** |
+| 01  | [Vision & Scope](01-foundation/01-vision-and-scope.md)     | The loop, the components, what we will not build, success criteria `S-1`…`S-8`                  |
+| 02  | [Requirements](01-foundation/02-requirements.md)           | `FR-001`…`FR-909`, `NFR-1`…`NFR-10`, acceptance criteria, the trace matrix                      |
+| 03  | [Glossary](01-foundation/03-glossary.md)                   | Shared vocabulary — read before arguing about a word                                            |
 
-1. [Problem alignment](docs/01-foundation/00-problem-alignment.md) explains the brief, rubric, and non-negotiable claims.
-2. [Vision and scope](docs/01-foundation/01-vision-and-scope.md) defines the product loop and boundaries.
-3. [Requirements](docs/01-foundation/02-requirements.md) defines acceptance criteria and traceability.
-4. [System architecture](docs/02-architecture/04-system-architecture.md) and [data model](docs/02-architecture/05-data-model.md) define the core contracts.
-5. [Execution plan](docs/05-delivery/20-execution-plan.md) gives the implementation order and phase gates.
-6. [Repository conventions](docs/04-build/15-repo-and-conventions.md) defines the future code layout and dependency rules.
+### [02-architecture/](02-architecture/) — how the pieces fit
 
-The complete index is [`docs/README.md`](docs/README.md). Current documentation status is tracked in [`docs/00-work-plan.md`](docs/00-work-plan.md).
+|     | Document                                                         | In one line                                                                           |
+| --- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 04  | [System Architecture](02-architecture/04-system-architecture.md) | Processes, the orchestrator FSM and its guards, the capability lap, failure isolation |
+| 05  | [Data Model](02-architecture/05-data-model.md)                   | Zod schemas → TS types, SQLite DDL, invariants asserted in code                       |
+| 06  | [Agent Contracts](02-architecture/06-agent-contracts.md)         | The agent-loop harness, per-sub-agent I/O schemas, the no-throw law, budgets          |
+| 07  | [LLM Integration](02-architecture/07-llm-integration.md)         | Models per call site, structured output, caching, the resilience ladder, cost         |
+| 08  | [Perception Layer](02-architecture/08-perception-layer.md)       | Accessibility snapshots, state signatures, affordances — and why not raw DOM          |
 
-## Product loop
+### [03-algorithms/](03-algorithms/) — the parts that carry the claim
 
-```text
-Explore -> Prioritise -> Plan -> Critique -> Generate -> Run -> Triage -> Heal or Escalate -> Verify -> Report
-```
+|     | Document                                                                           | In one line                                                                                      |
+| --- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 09  | [Exploration & Prioritisation](03-algorithms/09-exploration-and-prioritisation.md) | Login detection, the frontier, deduplication, the deny-list, capability clustering, risk ranking |
+| 10  | [Planner](03-algorithms/10-planner.md)                                             | Grounded scenarios, Markdown and JSON from one source, stable ids, priority                      |
+| 11  | [Coverage Critic](03-algorithms/11-coverage-critic.md)                             | The gap classes, the blocking floor, the re-plan loop, PRD gap analysis                          |
+| 12  | [Generator](03-algorithms/12-generator.md)                                         | The deterministic compiler, the locator ladder, live validation, portable output                 |
+| 13  | [Triage & Healing](03-algorithms/13-triage-and-healing.md)                         | Six causes, fingerprints, six-signal scoring, vetoes `V1`…`V5`, patch, rollback, verify          |
+| 14  | [Quality Report & Score](03-algorithms/14-quality-report-and-score.md)             | The five mandated contents, the Robustness Score, the projected delta, flow risk                 |
 
-The two defining behaviours are:
+### [04-build/](04-build/) — what to type
 
-- **Critique before generation:** a weak plan is rejected and replanned before test code is written.
-- **Veto-gated healing:** a failure is classified first; suspected product defects are reported, not silently repaired.
+|     | Document                                                  | In one line                                                                         |
+| --- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 15  | [Repo & Conventions](04-build/15-repo-and-conventions.md) | Layout, the enforced import graph, the CLI, git, Definition of Done                 |
+| 16  | [Agent Test Suite](04-build/16-agent-test-suite.md)       | How we test the agent — **written before the agent**. Golden cases `EC-01`…`EC-07`. |
+| 17  | [API Spec](04-build/17-api-spec.md)                       | REST + SSE, the session lifecycle, event envelopes, error shapes                    |
+| 18  | [UI Spec](04-build/18-ui-spec.md)                         | Tokens, five screens, the decision inspector, performance budgets                   |
+| 19  | [Target Applications](04-build/19-target-apps.md)         | Three targets, the injectable defects, the cold-switch procedure                    |
 
-## Agreed technology stack
+### [05-delivery/](05-delivery/) — how it ships
 
-| Area               | Choice                                           | Purpose                                                     |
-| ------------------ | ------------------------------------------------ | ----------------------------------------------------------- |
-| Runtime            | Node.js 22.11+                                   | Supported execution environment                             |
-| Package manager    | pnpm 10.12+                                      | Workspace management and reproducible installs              |
-| Language           | TypeScript 5.9+                                  | Strict application and domain code                          |
-| API                | Fastify 5                                        | REST API, SSE events, and orchestration host                |
-| Web UI             | Next.js 15, React                                | Mission Control dashboard                                   |
-| Browser automation | Playwright Test                                  | Exploration, generation validation, execution, and evidence |
-| Perception         | Playwright accessibility snapshots               | Deterministic page state and affordances                    |
-| Domain validation  | Zod                                              | Runtime schemas and inferred TypeScript types               |
-| Persistence        | SQLite via `better-sqlite3`                      | Sessions, laps, decisions, and historical evidence index    |
-| Evidence files     | Content-addressed filesystem                     | Screenshots, traces, and generated suites                   |
-| Model integration  | Anthropic Messages API and SDK                   | Bounded structured-output model calls                       |
-| Testing            | Vitest plus Playwright Test                      | Pure unit, replay/golden, and live browser tests            |
-| Quality            | ESLint, Prettier, dependency-cruiser, TypeScript | Formatting, linting, type safety, and import boundaries     |
-| Packaging          | Docker Compose                                   | Optional one-command local/demo deployment                  |
-| CI                 | GitHub Actions                                   | Install, typecheck, lint, unit, and golden checks           |
+|     | Document                                           | In one line                                                         |
+| --- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| 20  | [Execution Plan](05-delivery/20-execution-plan.md) | Eight hours in six phases, exit gates, what gets cut and when       |
+| 21  | [Resilience](05-delivery/21-resilience.md)         | Retry, rollback, circuit breakers, degraded mode, budget exhaustion |
+| 22  | [Demo Runbook](05-delivery/22-demo-runbook.md)     | The 4:00 script, the 2:30 cut, failure drills, Q&A                  |
+| 23  | [Risk Register](05-delivery/23-risk-register.md)   | Risks with triggers and owners; the floor that is never cut         |
 
-The model is an adapter, not the source of truth. Deterministic code owns schemas, scoring, state transitions, compilation, safety vetoes, persistence, and reporting. The selected default model is documented in [LLM integration](docs/02-architecture/07-llm-integration.md); `FORGE_LLM_ENABLED=false` must support offline replay and evaluation.
+### [06-knowledge/](06-knowledge/) — the self-improving knowledge base
 
-## MVP implementation shape
+What we learned, captured as we learn it, so the next session starts where this one ended.
 
-The implementation is a pnpm workspace with these intentional boundaries:
+### [decisions/](decisions/) — the ADRs
 
-```text
-apps/web       Next.js dashboard
-apps/api       Fastify API, orchestrator host, and Playwright runtime
-apps/sut       Bundled mutable Aperture target for controlled demonstrations
-packages/core  Pure schemas, domain logic, scoring, compilation, and reports
-packages/perception  Accessibility snapshots and state signatures
-packages/agents      Bounded Explorer, Planner, Critic, and Triage loops
-packages/orchestrator  Session/lap finite-state machine
-packages/runner  Playwright execution and evidence capture
-packages/store   SQLite metadata and evidence index
-packages/evals   Recorded transcripts, tool tapes, and golden cases
-packages/cli     The `forge` command
-fixtures/       Tracked replay inputs and expected outputs
-artifacts/      Runtime output only; never source
-```
+Seventeen records. Each is an explicit A-vs-B comparison — the rejected option written out with its real advantages — plus the risks taken on, the hidden assumptions, and the **flip triggers** that would reverse it. See [decisions/README](decisions/README.md).
 
-The detailed dependency graph and package responsibilities are in [Repository & conventions](docs/04-build/15-repo-and-conventions.md). Do not recreate the old singular `packages/agent` package or copy the removed scaffold.
+### [deferred/](deferred/) — specified, deliberately not built
 
-See [Quickstart](#quickstart) above for the tested install steps. The MVP phase order is [`20 · Execution Plan`](docs/05-delivery/20-execution-plan.md) and [`TASKLIST.md`](TASKLIST.md): the pure spine and replay harness first (`Ph1`), then Playwright and the model (`Ph2`–`Ph5`), then the UI and Docker path (`Ph6`).
+Work that is designed and descoped. Being able to show what you chose _not_ to build is a form of rigour, not an admission.
 
-## Status
+---
 
-Documentation is complete. `Ph0` (pre-flight) is complete: the pnpm workspace, dependency-cruiser/ESLint/Prettier guardrails, CI, git hooks, pinned Chromium, and `forge doctor` all exist and pass — `pnpm lint`, `pnpm verify`, and `pnpm doctor` are green. No product behaviour exists yet; that starts at `Ph1` (schemas, store, FSM, `runAgentLoop()`, API/SSE, eval harness). See [`TASKLIST.md`](TASKLIST.md) for the full checkpoint-by-checkpoint state, [the work plan](docs/00-work-plan.md) for the documentation history, and [the agent test suite](docs/04-build/16-agent-test-suite.md) for the executable contract `Ph1` builds against.
+## ID index
+
+Every prefix, and the one document that owns it. Cite IDs; do not paraphrase them.
+
+| Prefix                            | Means                                                       | Owner                                                                  |
+| --------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `FR-0xx`…`FR-9xx`                 | Functional requirement, numbered by pipeline stage          | [02](01-foundation/02-requirements.md)                                 |
+| `NFR-n`                           | Non-functional requirement                                  | [02](01-foundation/02-requirements.md)                                 |
+| `S-n`                             | Product success criterion                                   | [01 §7.1](01-foundation/01-vision-and-scope.md)                        |
+| `P-n`                             | Performance budget                                          | [01 §7.2](01-foundation/01-vision-and-scope.md)                        |
+| `M1`…`M7` / `G1`…`G3` / `B1`…`B2` | The brief's own Must / Good-to-have / Bonus clauses         | [00 §3](01-foundation/00-problem-alignment.md)                         |
+| `S1`…`S6`                         | Submission deliverable                                      | [00 §5](01-foundation/00-problem-alignment.md)                         |
+| `TG-n`                            | Transition guard on the orchestrator FSM                    | [04 §3.3](02-architecture/04-system-architecture.md)                   |
+| `I-n`                             | Data-model invariant, asserted in code                      | [05 §5](02-architecture/05-data-model.md)                              |
+| `Vn`                              | Healing veto — a hard block                                 | [13](03-algorithms/13-triage-and-healing.md)                           |
+| `EC-nn`                           | Golden eval case                                            | [16](04-build/16-agent-test-suite.md)                                  |
+| `R-n`                             | Rehearsal                                                   | [16](04-build/16-agent-test-suite.md)                                  |
+| `M-nn`                            | Injectable defect on the bundled target                     | [19](04-build/19-target-apps.md)                                       |
+| `EXT-nn`                          | External validation platform — supplementary, non-canonical | [target-apps/external-platforms.md](target-apps/external-platforms.md) |
+| `RK-nn`                           | Risk                                                        | [23](05-delivery/23-risk-register.md)                                  |
+| `W-n`                             | Open work-plan item                                         | [00 · Work Plan §7](00-work-plan.md)                                   |
+| `Q-n`                             | Open question about the event itself                        | [02 §13](01-foundation/02-requirements.md)                             |
+| `ADR-nnn`                         | Decision record                                             | [decisions/](decisions/)                                               |
+| `Ph0`…`Ph6`                       | Build phase                                                 | [20](05-delivery/20-execution-plan.md)                                 |
+| `C1`…`C5`                         | Documentation checkpoint                                    | [00 · Work Plan §3](00-work-plan.md)                                   |
+
+---
+
+## Editing these documents
+
+1. **[00 · Problem Alignment](01-foundation/00-problem-alignment.md) is the source of truth.** If a document disagrees with it, the document is wrong.
+2. **[01 · Vision & Scope](01-foundation/01-vision-and-scope.md) is frozen** from Checkpoint C1. Changing it requires an ADR.
+3. **IDs are permanent.** Never renumber, never delete, never reuse.
+4. **A changed ID is a cross-document edit.** `grep -rn "FR-304" docs/` before you touch anything.
+5. **`packages/core/src/schema` is frozen at the end of Ph1.** One Zod edit invalidates work in three places at once.
+6. **New decisions get the next number** — `ADR-018` onward, following the template in [decisions/README](decisions/README.md).
+7. **Docs and code change together.** A behaviour change with no doc edit fails review.
