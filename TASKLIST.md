@@ -278,10 +278,10 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph4.1 — The compiler, pure · **KEEP**
 
-- [ ] **Test** `compile_is_byte_identical` · `no_wall_clock_in_emitted_code` · `no_target_literals_in_packages` ([16 §8.6](docs/04-build/16-agent-test-suite.md))
+- [x] **Test** `compile_is_byte_identical` · `no_wall_clock_in_emitted_code` · `no_target_literals_in_packages` ([16 §8.6](docs/04-build/16-agent-test-suite.md))
 - [ ] ⏭ **Test** the generation locator ladder detail _(sprint: hard-code role→name→testid ladder in compiler)_
-- [ ] **Build** `packages/core/compile` — the five passes ([12 §2](docs/03-algorithms/12-generator.md)). Model output is **never executed** ([04 §8](docs/02-architecture/04-system-architecture.md))
-- [ ] **Verify** two compiles of one fixture plan hash equal
+- [x] **Build** `packages/core/compile` — the five passes ([12 §2](docs/03-algorithms/12-generator.md)). Model output is **never executed** ([04 §8](docs/02-architecture/04-system-architecture.md))
+- [x] **Verify** two compiles of one fixture plan hash equal
 
 ### Ph4.2 — Live validation · **⏭ CUT this sitting** (drop ambiguous locators at compile time instead)
 
@@ -291,14 +291,14 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph4.3 — The emitted project · **KEEP (thin — one capability)**
 
-- [ ] **Build** the portable project layout ([12 §6](docs/03-algorithms/12-generator.md)) — one spec per capability, zero cross-capability imports, credentials from `process.env`
+- [x] **Build** the portable project layout ([12 §6](docs/03-algorithms/12-generator.md)) — one spec per capability, zero cross-capability imports, credentials from `process.env`
 - [ ] ⏭ **Build** the machine-owned path contract polish
 - [ ] ⏭ **Verify** `git diff` on `tests/generated/**` is empty for human commits
 
 ### Ph4.4 — The Runner · **KEEP (thin — no trace/network)**
 
-- [ ] **Test** evidence rows per executed step (DOM + screenshot minimum); path carries sha256 prefix; redaction of secrets (`FR-507`)
-- [ ] **Build** execution + evidence capture; ⏭ fingerprint / `trace.zip` / network summary
+- [x] **Test** evidence rows per executed step (DOM + screenshot minimum); path carries sha256 prefix; redaction of secrets (`FR-507`)
+- [x] **Build** execution + evidence capture; ⏭ fingerprint / `trace.zip` / network summary
 - [ ] ⏭ **Verify** `trace.zip` opens in Trace Viewer
 
 > ### ⏸ Ph4 exit gate · **sprint substitute**

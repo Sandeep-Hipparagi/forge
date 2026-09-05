@@ -258,6 +258,9 @@ importers:
       '@forge/perception':
         specifier: workspace:*
         version: link:../perception
+      '@forge/store':
+        specifier: workspace:*
+        version: link:../store
       playwright:
         specifier: ^1.49.1
         version: 1.63.0
