@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 3 * * *"
 
 jobs:
   guard:
@@ -12,7 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: generated code is machine-owned
         run: |
-          if git diff --name-only "${{ github.event.pull_request.base.sha }}"...HEAD | grep -E '(^|/)tests/generated/'; then
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if git diff --name-only "$BASE"...HEAD | grep -E '(^|/)tests/generated/'; then
             echo "::error::A human commit touched tests/generated/**"
             exit 1
           fi
@@ -28,6 +31,7 @@ jobs:
           node-version: 22.11.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm doctor
       - run: pnpm typecheck
       - run: pnpm lint
