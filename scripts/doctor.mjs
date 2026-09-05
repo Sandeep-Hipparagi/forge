@@ -18,11 +18,17 @@ if (playwright.status !== 0)
     "Chromium/Playwright is unavailable; run pnpm exec playwright install chromium",
   );
 const bind = process.env.FORGE_API_BIND ?? "127.0.0.1";
+const apiPort = Number(process.env.FORGE_API_PORT ?? "4000");
 const allowedHosts = (
   process.env.FORGE_ALLOWED_HOSTS ?? "localhost,127.0.0.1"
 ).split(",");
 const writeAllowlist =
   process.env.FORGE_WRITE_ALLOWLIST ?? "artifacts,apps/sut/tests";
+const secretProvider = process.env.FORGE_SECRET_PROVIDER ?? "env";
+if (!Number.isInteger(apiPort) || apiPort < 1 || apiPort > 65_535)
+  errors.push("FORGE_API_PORT must be an integer between 1 and 65535");
+if (secretProvider !== "env")
+  errors.push("FORGE_SECRET_PROVIDER must be the supported 'env' adapter");
 if (writeAllowlist !== "artifacts,apps/sut/tests")
   errors.push("write allowlist differs from the Ph0 safety contract");
 if (
@@ -34,7 +40,9 @@ if (
   (process.env.FORGE_LLM_ENABLED ?? "false") !== "false" &&
   !process.env.ANTHROPIC_API_KEY
 )
-  errors.push("live model mode requires ANTHROPIC_API_KEY");
+  errors.push(
+    "live model mode cannot check reachability without ANTHROPIC_API_KEY",
+  );
 if (
   process.env.FORGE_DISPOSABLE_TARGET === "true" &&
   allowedHosts.some((host) => !["localhost", "127.0.0.1"].includes(host))

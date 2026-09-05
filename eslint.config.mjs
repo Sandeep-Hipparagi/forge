@@ -11,6 +11,37 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ["packages/**/*.ts"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "Date",
+          message: "Take Clock from RunContext — docs/04-build/15 §4.4.",
+        },
+      ],
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "Math",
+          property: "random",
+          message: "Take Rng from RunContext — docs/04-build/15 §4.4.",
+        },
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["node:crypto", "crypto"],
+              message: "Take IdGen from RunContext — docs/04-build/15 §4.4.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["packages/{agents,runner}/**/*.ts"],
     rules: {
       "no-restricted-syntax": [
@@ -43,6 +74,8 @@ export default tseslint.config(
     files: ["packages/core/src/env.ts"],
     rules: {
       "no-restricted-globals": "off",
+      "no-restricted-properties": "off",
+      "no-restricted-imports": "off",
     },
   },
 );

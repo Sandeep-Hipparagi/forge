@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   Session,
   SessionInput,
+  type PersistedSessionInput,
   createSeededRng,
   defaultSessionConfig,
 } from "@forge/core";
@@ -9,6 +10,10 @@ import {
 const config = defaultSessionConfig();
 
 describe("session schema", () => {
+  it("makes a persisted input structurally incapable of carrying a password", () => {
+    expectTypeOf<PersistedSessionInput>().not.toHaveProperty("password");
+  });
+
   it("accepts credentials only at the input boundary", () => {
     const input = SessionInput.parse({
       url: "https://example.test",
