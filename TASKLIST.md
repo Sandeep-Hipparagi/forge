@@ -316,9 +316,9 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph5.1 — The pre-classifier · **KEEP**
 
-- [ ] **Test** `I-6` a fired veto implies `final = true` · a `final` pre-classification makes **zero** model calls
-- [ ] **Test** the [16 §11.1](docs/04-build/16-agent-test-suite.md) amendment: **first** match wins for `kind`/`confidence`/`final`, **every** matching row contributes its veto id
-- [ ] **Build** `packages/core/diagnose` — the ten rows, six causes ([13 §2](docs/03-algorithms/13-triage-and-healing.md), [§3](docs/03-algorithms/13-triage-and-healing.md))
+- [x] **Test** `I-6` a fired veto implies `final = true` · a `final` pre-classification makes **zero** model calls
+- [x] **Test** the [16 §11.1](docs/04-build/16-agent-test-suite.md) amendment: **first** match wins for `kind`/`confidence`/`final`, **every** matching row contributes its veto id
+- [x] **Build** `packages/core/diagnose` — the ten rows, six causes ([13 §2](docs/03-algorithms/13-triage-and-healing.md), [§3](docs/03-algorithms/13-triage-and-healing.md))
 
 ### Ph5.2 — Signatures and the repeat cache · **⏭ CUT this sitting**
 
@@ -326,29 +326,29 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph5.3 — Candidates and the six-signal score · **KEEP (thin)**
 
-- [ ] **Test** `I-5` — only `resolvedCount === 1` is eligible, filtered **before** scoring
+- [x] **Test** `I-5` — only `resolvedCount === 1` is eligible, filtered **before** scoring
 - [ ] ⏭ **Test** `EC-05` arm A to `1e-6` with all six sub-scores _(sprint: score order + gate thresholds only)_
-- [ ] **Test** `xpath_never_reaches_the_auto_heal_gate` ([16 §8.5](docs/04-build/16-agent-test-suite.md)); trust ceilings in [16 §8.4](docs/04-build/16-agent-test-suite.md)
-- [ ] **Build** the healing ladder and a minimal scorer ([13 §6](docs/03-algorithms/13-triage-and-healing.md)–[§8](docs/03-algorithms/13-triage-and-healing.md))
+- [x] **Test** `xpath_never_reaches_the_auto_heal_gate` ([16 §8.5](docs/04-build/16-agent-test-suite.md)); trust ceilings in [16 §8.4](docs/04-build/16-agent-test-suite.md)
+- [x] **Build** the healing ladder and a minimal scorer ([13 §6](docs/03-algorithms/13-triage-and-healing.md)–[§8](docs/03-algorithms/13-triage-and-healing.md))
 
 ### Ph5.4 — The five vetoes · **KEEP (both halves)**
 
-- [ ] **Test** one dedicated test per veto, **both halves** ([16 §8.1](docs/04-build/16-agent-test-suite.md))
-- [ ] **Test** `V2` blocks at `0.71` (`EC-06`)
-- [ ] **Test** `I-3` — an assertion-kind step never receives a patch
-- [ ] **Build** `packages/core/healing/vetoes` ([13 §10](docs/03-algorithms/13-triage-and-healing.md)). Vetoes **before** any score
+- [x] **Test** one dedicated test per veto, **both halves** ([16 §8.1](docs/04-build/16-agent-test-suite.md))
+- [x] **Test** `V2` blocks at `0.71` (`EC-06`)
+- [x] **Test** `I-3` — an assertion-kind step never receives a patch
+- [x] **Build** `packages/core/healing/vetoes` ([13 §10](docs/03-algorithms/13-triage-and-healing.md)). Vetoes **before** any score
 
 ### Ph5.5 — The decision gates · **KEEP**
 
-- [ ] **Test** both sides of every threshold: `0.6499/0.65`, `0.8499/0.85`, margin `0.0499/0.05`
-- [ ] **Test** `TG-9`'s refusal — any of the three conditions absent blocks the heal
-- [ ] **Build** [13 §9](docs/03-algorithms/13-triage-and-healing.md), and `TG-9` in the FSM
+- [x] **Test** both sides of every threshold: `0.6499/0.65`, `0.8499/0.85`, margin `0.0499/0.05`
+- [x] **Test** `TG-9`'s refusal — any of the three conditions absent blocks the heal
+- [x] **Build** [13 §9](docs/03-algorithms/13-triage-and-healing.md), and `TG-9` in the FSM
 
 ### Ph5.6 — Patch, verify, roll back · **KEEP (thin)**
 
-- [ ] **Test** `TG-10`: failed full-flow verify **rolls back byte-for-byte** · `I-7`
+- [x] **Test** `TG-10`: failed full-flow verify **rolls back byte-for-byte** · `I-7`
 - [ ] ⏭ **Test** `I-10` version increment polish · unified-diff parse
-- [ ] **Build** patch + verify + rollback ([13 §12](docs/03-algorithms/13-triage-and-healing.md), [§13](docs/03-algorithms/13-triage-and-healing.md)); ⏭ escalation card polish
+- [x] **Build** patch + verify + rollback ([13 §12](docs/03-algorithms/13-triage-and-healing.md), [§13](docs/03-algorithms/13-triage-and-healing.md)); ⏭ escalation card polish
 
 ### Ph5.7 — The two agent call sites, last · **⏭ CUT this sitting**
 
@@ -369,15 +369,15 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph6.1 — The report arithmetic, pure · **KEEP**
 
-- [ ] **Test** `I-18` all five brief-mandated contents populated · `I-19` `RobustnessScore.current` recomputes **exactly** from stored rows
-- [ ] **Test** `residualGaps` and `acceptedRisk` render as **two** sections, never merged ([14 §2](docs/03-algorithms/14-quality-report-and-score.md))
+- [x] **Test** `I-18` all five brief-mandated contents populated · `I-19` `RobustnessScore.current` recomputes **exactly** from stored rows
+- [x] **Test** `residualGaps` and `acceptedRisk` render as **two** sections, never merged ([14 §2](docs/03-algorithms/14-quality-report-and-score.md))
 - [ ] ⏭ **Test** untested flow risk ranking / `hoursSaved` assumptions _(sprint: `hoursSaved = null`)_
-- [ ] **Build** `packages/core/report` ([14 §3](docs/03-algorithms/14-quality-report-and-score.md)–[§7](docs/03-algorithms/14-quality-report-and-score.md)). Zero model calls
+- [x] **Build** `packages/core/report` ([14 §3](docs/03-algorithms/14-quality-report-and-score.md)–[§7](docs/03-algorithms/14-quality-report-and-score.md)). Zero model calls
 
 ### Ph6.2 — Three renderings, one truth · **KEEP (Markdown only)**
 
 - [ ] ⏭ **Test** `report_renderings_agree` across three formats
-- [ ] **Build** Markdown renderer + `forge report <sessionId>` · ⏭ JSON/HTML twins
+- [x] **Build** Markdown renderer + `forge report <sessionId>` · ⏭ JSON/HTML twins
 
 ### Ph6.3 — The dashboard · **⏭ CUT this sitting**
 

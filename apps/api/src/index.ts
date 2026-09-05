@@ -24,6 +24,7 @@ if (isMain) {
       .map((host) => host.trim())
       .filter(Boolean),
     webOrigin: `http://localhost:${process.env.FORGE_WEB_PORT ?? "3000"}`,
+    repositoryRoot,
   });
   const port = Number.parseInt(process.env.FORGE_API_PORT ?? "4000", 10);
   const host = process.env.FORGE_API_BIND ?? "127.0.0.1";

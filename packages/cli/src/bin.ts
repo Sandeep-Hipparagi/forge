@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { runDoctor } from "./commands/doctor.js";
 import { runEval } from "./commands/eval.js";
 import { runExplore } from "./commands/explore.js";
+import { runReport } from "./commands/report.js";
 import { runReset } from "./commands/reset.js";
 import { runSession } from "./commands/run.js";
 
@@ -53,9 +54,12 @@ async function main(): Promise<number> {
     case "reset":
       return await runReset(repoRoot);
 
+    case "report":
+      return await runReport(rest[0], repoRoot);
+
     default:
       console.error(
-        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available: doctor, eval, explore, reset, run.`,
+        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available: doctor, eval, explore, report, reset, run.`,
       );
       return 1;
   }
