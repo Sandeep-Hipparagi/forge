@@ -140,6 +140,23 @@ describe("frontier helpers", () => {
     expect(isOffOrigin("https://evil.test/x", "https://shop.test")).toBe(true);
     expect(isOffOrigin("https://shop.test/cart", "https://shop.test")).toBe(false);
   });
+
+  it("chooseBatchFallback respects maxExercisePerBatch (default 6, thorough higher)", () => {
+    const batch: FrontierItem[] = Array.from({ length: 12 }, (_, i) => ({
+      fromSignature: "sig",
+      fromStateId: "st_1",
+      affordanceId: `af_${i}`,
+      ref: `e${i}`,
+      role: "link",
+      accessibleName: `Link ${i}`,
+      kind: "link",
+      value: 1 - i * 0.01,
+      restoreAttempts: 0,
+    }));
+    expect(chooseBatchFallback(batch)).toHaveLength(6);
+    expect(chooseBatchFallback(batch, 60)).toHaveLength(12);
+    expect(chooseBatchFallback(batch, 3)).toHaveLength(3);
+  });
 });
 
 describe("frontier halt reasons (FR-107)", () => {

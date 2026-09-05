@@ -12,11 +12,17 @@ import {
   type SessionEvent,
 } from "@forge/core";
 import { critiquePlan, planCapability } from "@forge/agent-planner";
+import { THOROUGH_FRONTIER_BUDGETS } from "@forge/agent-explorer";
 import type { ForgeStore } from "@forge/store";
 import { closeExplorationBrowser, executeSuite, openExplorationBrowser } from "@forge/runner";
 import { exploreSession } from "./explore.js";
 import { tg2PrepareMap, tg3OrderBacklog } from "./guards.js";
 import { capabilitySubgraph } from "./subgraph.js";
+
+export type LiveSessionCredentials = {
+  username: string;
+  password: string;
+};
 
 export type LiveSessionOptions = {
   store: ForgeStore;
@@ -26,9 +32,31 @@ export type LiveSessionOptions = {
   /** Max capabilities to lap in one live run. Default 1 for public-site latency. */
   maxLaps?: number;
   headless?: boolean;
+  /**
+   * In-memory only for this process turn — never written to the session row
+   * (FR-006 / I-16). Required for live login when the caller stripped `password`
+   * at the API boundary.
+   */
+  credentials?: LiveSessionCredentials;
   /** Called after each new persisted event so the API EventBus can fan out. */
   onEvent?: (event: SessionEvent) => void;
 };
+
+/**
+ * Prefer in-memory credentials (password survives the API strip); fall back to
+ * the stored username alone when no kickoff credentials were supplied.
+ */
+export function resolveExploreAuth(input: {
+  storedUsername?: string;
+  credentials?: LiveSessionCredentials;
+}): { username?: string; password?: string } {
+  const username = input.credentials?.username ?? input.storedUsername;
+  const password = input.credentials?.password;
+  return {
+    ...(username !== undefined ? { username } : {}),
+    ...(password !== undefined ? { password } : {}),
+  };
+}
 
 function publish(options: LiveSessionOptions, event: SessionEvent): void {
   options.onEvent?.(event);
@@ -100,29 +128,28 @@ export async function runLiveSession(options: LiveSessionOptions): Promise<Sessi
   const session = options.store.getSession(options.sessionId);
   if (session === null) throw new Error(`Session not found: ${options.sessionId}`);
 
-  const maxLaps = Math.max(1, options.maxLaps ?? 1);
+  const maxLaps = Math.max(1, options.maxLaps ?? 10);
   const headless = options.headless ?? true;
   const beforeSeq = options.store.listEvents(options.sessionId).at(-1)?.seq ?? -1;
 
   try {
+    const auth = resolveExploreAuth({
+      ...(session.input.username !== undefined ? { storedUsername: session.input.username } : {}),
+      ...(options.credentials !== undefined ? { credentials: options.credentials } : {}),
+    });
     const explored = await exploreSession({
       store: options.store,
       context: options.context,
       sessionId: options.sessionId,
       input: {
         url: session.input.url,
-        ...(session.input.username !== undefined ? { username: session.input.username } : {}),
+        ...auth,
         ...(session.input.intent !== undefined ? { intent: session.input.intent } : {}),
-        forceDeterministic: (process.env["FORGE_LLM_ENABLED"] ?? "true") === "false",
+        forceDeterministic: true,
         terminal: false,
         headless,
         captureScreenshots: true,
-        budgets: {
-          maxStates: 30,
-          wallClockMs: 120_000,
-          politenessDelayMs: 150,
-          maxModelCalls: 12,
-        },
+        budgets: { ...THOROUGH_FRONTIER_BUDGETS },
       },
     });
 
@@ -326,14 +353,18 @@ async function runLaps(
       assessmentScore: critique.score,
     });
 
+    const lapScenarios: ReportInput["scenariosCovered"] = [];
     for (const scenario of suite.scenarios) {
-      scenariosCovered.push({
+      const covered: ReportInput["scenariosCovered"][number] = {
         scenarioId: scenario.scenarioId,
         capability: capability.name,
         title: scenario.title,
         class: scenario.class,
         priority: scenario.priority,
-      });
+        status: "skipped",
+      };
+      lapScenarios.push(covered);
+      scenariosCovered.push(covered);
       for (const step of scenario.steps) {
         const strategy = step.locatorSpec?.strategy;
         if (strategy === "role_name" || strategy === "test_id") {
@@ -355,16 +386,25 @@ async function runLaps(
     const opened = await openExplorationBrowser({ headless: options.headless ?? true });
     let lapOutcome: LapOutcome = "VERIFIED";
 
+    const markAllFailed = (reason: string, severity: "BLOCKER" | "MAJOR") => {
+      const detail = reason.slice(0, 500);
+      for (const covered of lapScenarios) {
+        covered.status = "failed";
+        covered.failureReason = detail;
+        outcomes.failed += 1;
+        defects.push({
+          diagnosisId: options.context.ids.next("diag"),
+          capability: capability.name,
+          expected: `${covered.title} (${covered.scenarioId})`,
+          actual: detail.slice(0, 300),
+          severity,
+        });
+      }
+    };
+
     if (!opened.ok) {
       lapOutcome = "LAP_FAILED";
-      defects.push({
-        diagnosisId: options.context.ids.next("diag"),
-        capability: capability.name,
-        expected: "browser launch",
-        actual: opened.error.message,
-        severity: "BLOCKER",
-      });
-      outcomes.failed += Math.max(1, suite.scenarios.length);
+      markAllFailed(`browser launch failed: ${opened.error.message}`, "BLOCKER");
     } else {
       try {
         const entryUrl =
@@ -415,29 +455,34 @@ async function runLaps(
 
         if (!run.ok) {
           lapOutcome = "LAP_FAILED";
-          outcomes.failed += Math.max(1, suite.scenarios.length);
-          defects.push({
-            diagnosisId: options.context.ids.next("diag"),
-            capability: capability.name,
-            expected: "suite execution",
-            actual: run.error.message,
-            severity: "BLOCKER",
-          });
+          markAllFailed(`suite execution failed: ${run.error.message}`, "BLOCKER");
         } else {
-          for (const scenario of run.data.scenarios) {
-            if (scenario.status === "VERIFIED") {
-              outcomes.passed += 1;
-            } else {
-              outcomes.failed += 1;
-              lapOutcome = "DEFECT_FOUND";
-              defects.push({
-                diagnosisId: options.context.ids.next("diag"),
-                capability: capability.name,
-                expected: "scenario verified",
-                actual: (scenario.errorMessage ?? "FAIL_WITH_EVIDENCE").slice(0, 300),
-                severity: "MAJOR",
-              });
+          const byId = new Map(run.data.scenarios.map((s) => [s.scenarioId, s]));
+          for (const covered of lapScenarios) {
+            const result = byId.get(covered.scenarioId);
+            if (!result) {
+              covered.status = "skipped";
+              covered.failureReason = "Not executed — suite stopped after an earlier failure";
+              outcomes.skipped += 1;
+              continue;
             }
+            if (result.status === "VERIFIED") {
+              covered.status = "passed";
+              outcomes.passed += 1;
+              continue;
+            }
+            const detail = (result.errorMessage ?? "FAIL_WITH_EVIDENCE").slice(0, 500);
+            covered.status = "failed";
+            covered.failureReason = detail;
+            outcomes.failed += 1;
+            lapOutcome = "DEFECT_FOUND";
+            defects.push({
+              diagnosisId: options.context.ids.next("diag"),
+              capability: capability.name,
+              expected: `${covered.title} (${covered.scenarioId})`,
+              actual: detail.slice(0, 300),
+              severity: "MAJOR",
+            });
           }
         }
       } finally {

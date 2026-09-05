@@ -16,7 +16,8 @@ export type SessionStatus =
 export type SessionSummary = {
   id: string;
   status: SessionStatus;
-  input: { url: string; mode?: string; intent?: string; live?: boolean };
+  input: { url: string; mode?: string; intent?: string; live?: boolean; username?: string };
+  authenticated?: boolean;
   defectsFound: number;
   createdAt: string;
   finishedAt: string | null;
@@ -46,7 +47,12 @@ function apiUrl(path: string): string {
 
 export async function createSession(
   url: string,
-  options: { live?: boolean } = {},
+  options: {
+    live?: boolean;
+    username?: string;
+    password?: string;
+    intent?: string;
+  } = {},
 ): Promise<SessionSummary> {
   const response = await fetch(apiUrl("/api/sessions"), {
     method: "POST",
@@ -54,7 +60,19 @@ export async function createSession(
       "Content-Type": "application/json",
       "Idempotency-Key": globalThis.crypto.randomUUID(),
     },
-    body: JSON.stringify({ url, live: options.live === true }),
+    body: JSON.stringify({
+      url,
+      live: options.live === true,
+      ...(options.username !== undefined && options.username.length > 0
+        ? { username: options.username }
+        : {}),
+      ...(options.password !== undefined && options.password.length > 0
+        ? { password: options.password }
+        : {}),
+      ...(options.intent !== undefined && options.intent.length > 0
+        ? { intent: options.intent }
+        : {}),
+    }),
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorBody;

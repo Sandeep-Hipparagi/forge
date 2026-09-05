@@ -32,6 +32,10 @@ export type ExploreSessionInput = {
     wallClockMs?: number;
     politenessDelayMs?: number;
     maxModelCalls?: number;
+    frontierBatchSize?: number;
+    maxFanout?: number;
+    maxVisitedVariants?: number;
+    maxExercisePerBatch?: number;
   };
 };
 
@@ -161,6 +165,16 @@ export async function exploreSession(options: {
             : {}),
           ...(input.budgets?.maxModelCalls !== undefined
             ? { maxModelCalls: input.budgets.maxModelCalls }
+            : {}),
+          ...(input.budgets?.frontierBatchSize !== undefined
+            ? { frontierBatchSize: input.budgets.frontierBatchSize }
+            : {}),
+          ...(input.budgets?.maxFanout !== undefined ? { maxFanout: input.budgets.maxFanout } : {}),
+          ...(input.budgets?.maxVisitedVariants !== undefined
+            ? { maxVisitedVariants: input.budgets.maxVisitedVariants }
+            : {}),
+          ...(input.budgets?.maxExercisePerBatch !== undefined
+            ? { maxExercisePerBatch: input.budgets.maxExercisePerBatch }
             : {}),
         },
       },

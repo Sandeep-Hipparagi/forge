@@ -19,7 +19,12 @@ async function capturePageShot(
   evidence: ExploreEvidenceSink,
   meta: { label: string; phase: string; action?: string },
 ): Promise<string> {
-  const png = await page.screenshot({ type: "png", fullPage: false });
+  // Fast thumbnails for live explore: JPEG, viewport only, tuned for speed and size.
+  const buffer = await page.screenshot({
+    type: "jpeg",
+    quality: 60,
+    fullPage: false,
+  });
   const url = page.url();
   const title = await page.title().catch(() => "");
   const shot = evidence.store.putEvidence({
@@ -29,7 +34,7 @@ async function capturePageShot(
     stepId: null,
     type: "SCREENSHOT",
     label: meta.label || title || url,
-    content: png,
+    content: buffer,
     metadata: {
       url,
       title,
@@ -69,6 +74,8 @@ export function createLiveExplorePorts(options: {
 }): ExplorerDriverPorts {
   const { page, clock, ids, entryUrl, evidence } = options;
   let navigated = false;
+  let lastShotSignature: string | null = null;
+  let lastShotId: string | null = null;
 
   const observe = async (): Promise<FrontierObservation> => {
     if (!navigated) {
@@ -80,19 +87,26 @@ export function createLiveExplorePorts(options: {
       throw new Error(captured.error.message);
     }
     const { snapshot } = captured.data;
+    const signature = stateSignature(snapshot);
     let snapshotEvidenceId = ids.next("ev");
 
     if (evidence !== undefined) {
-      snapshotEvidenceId = await capturePageShot(page, evidence, {
-        label: snapshot.title || snapshot.url,
-        phase: "explore.observe",
-      });
+      if (lastShotSignature !== signature || lastShotId === null) {
+        snapshotEvidenceId = await capturePageShot(page, evidence, {
+          label: snapshot.title || snapshot.url,
+          phase: "explore.observe",
+        });
+        lastShotSignature = signature;
+        lastShotId = snapshotEvidenceId;
+      } else {
+        snapshotEvidenceId = lastShotId;
+      }
     }
 
     return {
       url: snapshot.url,
       title: snapshot.title ?? "",
-      signature: stateSignature(snapshot),
+      signature,
       snapshotEvidenceId,
       affordances: affordancesOf(snapshot),
     };

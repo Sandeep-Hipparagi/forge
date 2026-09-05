@@ -1,10 +1,11 @@
-export { buildReport, computeRobustnessScore } from "./score.js";
+export { buildReport, computeRobustnessScore, hydrateScenarioStatuses } from "./score.js";
 export type {
   CapabilityScoreInput,
   ReportDefect,
   ReportHealerAction,
   ReportInput,
   ReportScenario,
+  ReportScenarioStatus,
   ReportUntested,
 } from "./score.js";
 export { renderMarkdown } from "./render.js";

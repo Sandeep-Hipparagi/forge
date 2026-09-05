@@ -28,9 +28,31 @@ function hostOf(url: string): string {
   }
 }
 
+function presetTargets(): Array<{ id: string; label: string; url: string; hint?: string }> {
+  return [
+    {
+      id: "aperture",
+      label: "Aperture (local demo)",
+      url: "http://localhost:4100/",
+      hint: "Bundled demo app when running the full Forge demo stack",
+    },
+    {
+      id: "saucedemo",
+      label: "SauceDemo (login demo shop)",
+      url: "https://www.saucedemo.com/",
+      hint: "Public login-gated demo shop — bring your own credentials",
+    },
+  ];
+}
+
 export default function HomePage() {
   const router = useRouter();
   const [url, setUrl] = useState("https://");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [intent, setIntent] = useState("");
+  const [mode, setMode] = useState<"full" | "login" | "explore">("full");
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [live, setLive] = useState(false);
   const [liveAvailable, setLiveAvailable] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +61,7 @@ export default function HomePage() {
 
   const parsed = useMemo(() => parseApplicationUrl(url), [url]);
   const canSubmit = parsed.ok && !submitting;
+  const hasCredentials = username.trim().length > 0 || password.length > 0;
 
   const loadRecent = useCallback(async () => {
     try {
@@ -67,7 +90,19 @@ export default function HomePage() {
     setSubmitting(true);
     setError(null);
     try {
-      const session = await createSession(check.url, { live: live && liveAvailable });
+      const intentPrefix =
+        mode === "login" ? "[mode: login-only]" : mode === "explore" ? "[mode: explore-only]" : "";
+      const trimmedIntent = intent.trim();
+      const combinedIntent =
+        intentPrefix && trimmedIntent.length > 0
+          ? `${intentPrefix} ${trimmedIntent}`
+          : intentPrefix || trimmedIntent;
+      const session = await createSession(check.url, {
+        live: live && liveAvailable,
+        ...(username.trim().length > 0 ? { username: username.trim() } : {}),
+        ...(password.length > 0 ? { password } : {}),
+        ...(combinedIntent.length > 0 ? { intent: combinedIntent } : {}),
+      });
       router.push(`/s/${session.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start the session");
@@ -108,6 +143,119 @@ export default function HomePage() {
         </button>
       </form>
 
+      <div className="preset-row">
+        <span className="preset-label">Examples:</span>
+        {presetTargets().map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="preset-button"
+            onClick={() => {
+              setUrl(preset.url);
+              setError(null);
+            }}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      <details
+        className="optional-drawer"
+        open={optionsOpen}
+        onToggle={(e) => setOptionsOpen((e.target as HTMLDetailsElement).open)}
+      >
+        <summary>
+          Optional — sign-in, what to focus on
+          {hasCredentials ? " · credentials set" : ""}
+        </summary>
+        <div className="optional-fields">
+          <label htmlFor="username">
+            Username
+            <input
+              id="username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              placeholder="demo_user"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </label>
+          <label htmlFor="password">
+            Password
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <label className="optional-intent" htmlFor="intent">
+            Focus (optional)
+            <input
+              id="intent"
+              name="intent"
+              type="text"
+              placeholder="e.g. checkout and cart"
+              value={intent}
+              onChange={(e) => setIntent(e.target.value)}
+            />
+          </label>
+          <fieldset className="optional-mode">
+            <legend>Test mode</legend>
+            <div className="optional-mode-grid">
+              <label>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="full"
+                  checked={mode === "full"}
+                  onChange={() => setMode("full")}
+                />
+                <span>
+                  <strong>Full run</strong>
+                  <span>Explore → plan → run → report</span>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="login"
+                  checked={mode === "login"}
+                  onChange={() => setMode("login")}
+                />
+                <span>
+                  <strong>Login smoke</strong>
+                  <span>Quickly check sign-in works with these credentials</span>
+                </span>
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="explore"
+                  checked={mode === "explore"}
+                  onChange={() => setMode("explore")}
+                />
+                <span>
+                  <strong>Explore only</strong>
+                  <span>Map states and flows; treat intent as guidance</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+          <p className="field-hint">
+            Credentials are used once to sign in, then discarded. They are never stored in the
+            session, events, or screenshots metadata.
+          </p>
+        </div>
+      </details>
+
       <label className={`live-toggle ${liveAvailable ? "live-toggle-on" : ""}`}>
         <input
           type="checkbox"
@@ -118,14 +266,16 @@ export default function HomePage() {
         <span>
           <strong>Live explore</strong>
           {liveAvailable
-            ? " — open a real browser on this URL, screenshot each step, run explore → plan → run → report"
+            ? " — open a real browser, sign in if credentials are set, screenshot each step, run explore → plan → run → report"
             : " — API live mode is off (set FORGE_LIVE_SESSIONS=true and restart the API)"}
         </span>
       </label>
 
       <p id="url-hint" className="field-hint">
         {live && liveAvailable
-          ? "Live mode is on. FORGE will visit the URL for real. Uncheck Live explore for a fast stub demo."
+          ? hasCredentials
+            ? "Live mode is on with sign-in. FORGE will log in, crawl the app, and capture screenshots for every step."
+            : "Live mode is on. FORGE will visit the URL for real. Add credentials above if the app requires login."
           : "Stub mode only animates the pipeline and does not open the URL. Turn on Live explore to test for real."}
       </p>
       {error !== null && (
@@ -149,6 +299,7 @@ export default function HomePage() {
                   <span className="recent-host">{hostOf(session.input.url)}</span>
                   <span className="recent-meta">
                     {session.input.live ? "live · " : ""}
+                    {session.authenticated ? "signed in · " : ""}
                     {session.status}
                     {session.defectsFound > 0 ? ` · ${session.defectsFound} defect` : ""}
                     {" · "}

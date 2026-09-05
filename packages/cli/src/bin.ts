@@ -49,7 +49,7 @@ async function main(): Promise<number> {
       return await runExplore(rest, repoRoot);
 
     case "run":
-      return await runSession(rest[0]);
+      return await runSession(rest);
 
     case "reset":
       return await runReset(repoRoot);

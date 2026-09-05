@@ -35,9 +35,19 @@ export function demoReportInput(sessionId: string): ReportInput {
         title: "Happy path place order",
         class: "happy",
         priority: "P0",
+        status: "passed",
+      },
+      {
+        scenarioId: "SC-002",
+        capability: "Checkout",
+        title: "Reject expired card",
+        class: "negative",
+        priority: "P1",
+        status: "failed",
+        failureReason: 'assertText failed: expected to contain "Card declined"',
       },
     ],
-    outcomes: { passed: 1, failed: 0, healed: 1, flaky: 0, skipped: 0 },
+    outcomes: { passed: 1, failed: 1, healed: 1, flaky: 0, skipped: 0 },
     healerActions: [
       {
         runId: "run_demo0001",
@@ -82,9 +92,9 @@ export function demoReportInput(sessionId: string): ReportInput {
       {
         diagnosisId: "diag_demo0001",
         capability: "Checkout",
-        expected: "Order confirmed",
-        actual: "Something went wrong",
-        severity: "BLOCKER",
+        expected: "Reject expired card (SC-002)",
+        actual: 'assertText failed: expected to contain "Card declined"',
+        severity: "MAJOR",
       },
     ],
     capabilities: [

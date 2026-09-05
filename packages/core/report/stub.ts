@@ -43,6 +43,7 @@ export function stubReportInput(
         title: "Stub pipeline walkthrough (no live browser)",
         class: "happy",
         priority: "P0",
+        status: "passed",
       },
     ],
     outcomes: { passed: 1, failed: 0, healed: 0, flaky: 0, skipped: 0 },

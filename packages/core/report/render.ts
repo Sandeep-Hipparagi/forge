@@ -34,9 +34,14 @@ export function renderMarkdown(report: RenderableReport): string {
   if (report.scenariosCovered.length === 0) {
     lines.push(`_None._`, ``);
   } else {
-    lines.push(`| ID | Capability | Title | Class | Priority |`, `| --- | --- | --- | --- | --- |`);
+    lines.push(
+      `| ID | Capability | Title | Class | Priority | Status |`,
+      `| --- | --- | --- | --- | --- | --- |`,
+    );
     for (const s of report.scenariosCovered) {
-      lines.push(`| ${s.scenarioId} | ${s.capability} | ${s.title} | ${s.class} | ${s.priority} |`);
+      lines.push(
+        `| ${s.scenarioId} | ${s.capability} | ${s.title} | ${s.class} | ${s.priority} | ${s.status ?? "—"} |`,
+      );
     }
     lines.push(``);
   }
@@ -52,9 +57,24 @@ export function renderMarkdown(report: RenderableReport): string {
     `| flaky | ${report.outcomes.flaky} |`,
     `| skipped | ${report.outcomes.skipped} |`,
     ``,
-    `## 3. Self-healing actions taken`,
-    ``,
   );
+
+  const failedScenarios = report.scenariosCovered.filter((s) => s.status === "failed");
+  if (failedScenarios.length > 0) {
+    lines.push(`### Failed scenarios`, ``);
+    for (const s of failedScenarios) {
+      const reason = s.failureReason?.trim() || "No failure detail recorded";
+      lines.push(`- **${s.scenarioId}** · ${s.title} (${s.capability}): ${reason}`);
+    }
+    lines.push(``);
+  } else if (report.outcomes.failed > 0) {
+    lines.push(
+      `_Outcome counts include failures, but no per-scenario failure detail was stored for this report._`,
+      ``,
+    );
+  }
+
+  lines.push(`## 3. Self-healing actions taken`, ``);
 
   if (report.healerActions.length === 0) {
     lines.push(`_None._`, ``);
@@ -100,7 +120,7 @@ export function renderMarkdown(report: RenderableReport): string {
   }
 
   if (report.defects.length > 0) {
-    lines.push(`## Defects`, ``);
+    lines.push(`## Defects found`, ``);
     for (const d of report.defects) {
       lines.push(
         `- **${d.capability}** (${d.severity}): expected \`${d.expected}\` · actual \`${d.actual}\``,

@@ -8,6 +8,8 @@ type ReportJson = {
     title: string;
     class: string;
     priority: string;
+    status?: "passed" | "failed" | "healed" | "flaky" | "skipped";
+    failureReason?: string;
   }>;
   outcomes: {
     passed: number;
@@ -111,8 +113,26 @@ export default async function ReportPage({ params }: { params: Promise<{ session
   const residual = report.residualGaps ?? [];
   const accepted = report.acceptedRisk ?? [];
   const maxComponent = Math.max(...Object.values(report.score.components), 1);
+  const failedScenarios = report.scenariosCovered.filter((s) => s.status === "failed");
   const isDemo = sessionId === "ses_demo";
   const isLive = meta?.live === true;
+
+  const outcomeTotals = (() => {
+    const { passed, failed, healed, flaky, skipped } = report.outcomes;
+    const total = passed + failed + healed + flaky + skipped;
+    if (total === 0) {
+      return { total: 0, passed: 0, failed: 0, healed: 0, flaky: 0, skipped: 0 };
+    }
+    const pct = (n: number) => Math.round((n / total) * 100);
+    return {
+      total,
+      passed: pct(passed),
+      failed: pct(failed),
+      healed: pct(healed),
+      flaky: pct(flaky),
+      skipped: pct(skipped),
+    };
+  })();
 
   const healerSummary = (() => {
     if (report.healerActions.length === 0) {
@@ -182,6 +202,15 @@ export default async function ReportPage({ params }: { params: Promise<{ session
           → {report.score.projected} if open findings are fixed · every term recomputes from stored
           rows
         </p>
+        {outcomeTotals.total > 0 && (
+          <p className="score-meta" data-testid="outcome-percentages">
+            Outcomes (out of 100): passed {outcomeTotals.passed}% · failed {outcomeTotals.failed}% ·
+            healed {outcomeTotals.healed}% · flaky {outcomeTotals.flaky}% · skipped{" "}
+            {outcomeTotals.skipped}% ({report.outcomes.passed} passed, {report.outcomes.failed}{" "}
+            failed, {report.outcomes.healed} healed, {report.outcomes.flaky} flaky,{" "}
+            {report.outcomes.skipped} skipped)
+          </p>
+        )}
         <div className="bars">
           {Object.entries(report.score.components).map(([name, pts]) => (
             <div className="bar-row" key={name}>
@@ -247,6 +276,7 @@ export default async function ReportPage({ params }: { params: Promise<{ session
                 <th>Title</th>
                 <th>Class</th>
                 <th>Priority</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -257,6 +287,19 @@ export default async function ReportPage({ params }: { params: Promise<{ session
                   <td>{s.title}</td>
                   <td>{s.class}</td>
                   <td>{s.priority}</td>
+                  <td>
+                    <span
+                      className={
+                        s.status === "failed"
+                          ? "pill pill-blocked"
+                          : s.status === "passed" || s.status === "healed"
+                            ? "pill pill-healed"
+                            : "pill"
+                      }
+                    >
+                      {s.status ?? "—"}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -290,6 +333,42 @@ export default async function ReportPage({ params }: { params: Promise<{ session
             ))}
           </tbody>
         </table>
+        {failedScenarios.length > 0 ? (
+          <div className="failed-scenarios" data-testid="failed-scenarios">
+            <h3>Failed scenarios</h3>
+            <ul className="gap-list">
+              {failedScenarios.map((s) => (
+                <li key={`fail-${s.scenarioId}`}>
+                  <strong className="mono">{s.scenarioId}</strong> · {s.title}{" "}
+                  <span className="muted">({s.capability})</span>
+                  <div className="failure-reason">
+                    {s.failureReason?.trim() || "No failure detail recorded"}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : report.outcomes.failed > 0 || report.defects.length > 0 ? (
+          <div className="failed-scenarios" data-testid="failed-scenarios">
+            <h3>Failed scenarios</h3>
+            {report.defects.length > 0 ? (
+              <ul className="gap-list">
+                {report.defects.map((d, index) => (
+                  <li key={`defect-fail-${index}`}>
+                    <strong>{d.capability}</strong> ({d.severity}): expected{" "}
+                    <code className="mono">{d.expected}</code>
+                    <div className="failure-reason">{d.actual}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty">
+                Outcome counts include failures, but no per-scenario failure detail was stored for
+                this report.
+              </p>
+            )}
+          </div>
+        ) : null}
       </section>
 
       <section className="panel" aria-labelledby="healer-heading">
