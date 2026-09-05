@@ -7,6 +7,12 @@ export default defineConfig({
       "@forge/core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
+      "@forge/store": fileURLToPath(
+        new URL("./packages/store/src/index.ts", import.meta.url),
+      ),
+      "@forge/orchestrator": fileURLToPath(
+        new URL("./packages/orchestrator/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
