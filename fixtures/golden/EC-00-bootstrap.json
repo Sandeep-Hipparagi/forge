@@ -1,0 +1,7 @@
+{
+  "id": "EC-00",
+  "title": "Bootstrap replay contract",
+  "requiresBrowser": false,
+  "requiresModel": false,
+  "expected": "PASS"
+}
