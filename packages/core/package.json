@@ -21,6 +21,10 @@
     "./plan": {
       "types": "./dist/plan/index.d.ts",
       "import": "./dist/plan/index.js"
+    },
+    "./compile": {
+      "types": "./dist/compile/index.d.ts",
+      "import": "./dist/compile/index.js"
     }
   },
   "scripts": {

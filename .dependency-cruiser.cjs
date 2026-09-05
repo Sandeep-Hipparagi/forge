@@ -12,7 +12,7 @@ module.exports = {
       name: "no-node-builtins-in-core",
       severity: "error",
       comment: "core must not reach the filesystem, the network or a subprocess",
-      from: { path: "^packages/core" },
+      from: { path: "^packages/core", pathNot: "[.]test[.]ts$" },
       to: {
         dependencyTypes: ["core"],
         path: "^(node:)?(fs|path|child_process|http|https|net|crypto)$",

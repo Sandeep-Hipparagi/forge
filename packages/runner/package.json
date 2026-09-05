@@ -12,6 +12,7 @@
   "dependencies": {
     "@forge/core": "workspace:*",
     "@forge/perception": "workspace:*",
+    "@forge/store": "workspace:*",
     "playwright": "^1.49.1"
   }
 }
