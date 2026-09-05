@@ -11,8 +11,8 @@
 | Model rate limit or transient connection | Bounded exponential backoff, maximum three attempts | Cached plan or deterministic diagnosis | Continue or escalate |
 | Model timeout | One retry within the call-site budget | Cached plan or deterministic diagnosis | Continue or escalate |
 | Browser action timeout | One retry after fresh perception | Record `TOOL_TIMEOUT` | Triage the failure |
-| Target unreachable | No blind healing | Persist evidence and escalate | `BLOCKED` |
-| Store write failure | Retry once, then stop emitting events | None | `FAILED` |
+| Target unreachable | No blind healing | Persist evidence and escalate | `ESCALATED` |
+| Store write failure | Retry once, then stop emitting events | None | `ERROR` |
 | Process interruption | Resume from the last persisted transition | None | Session can restart safely |
 
 Every retry is counted, bounded, and included in run telemetry. No catch-all retry loop is permitted.

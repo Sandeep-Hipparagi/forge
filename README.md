@@ -10,6 +10,13 @@ FORGE is in its implementation bootstrap phase. The product specification lives 
 [`docs/`](docs/README.md); the workspace currently provides only the deterministic
 foundation needed to begin Ph1.
 
+## MVP shape
+
+The workspace preserves the intended boundaries: `apps/` hosts the future API,
+dashboard, and controlled target; `packages/core` owns pure domain rules; and
+the other package boundaries are reserved before implementation crosses them.
+The full architecture, requirements, and delivery gates remain in [`docs/`](docs/README.md).
+
 ## Ph0 commands
 
 Use Node `22.11.0` and pnpm `10.12.1` as pinned in [`.nvmrc`](.nvmrc) and

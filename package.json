@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "lint": "pnpm run format:check && depcruise --config .dependency-cruiser.cjs packages --output-type err-long",
     "test": "vitest run",
-    "eval": "pnpm --filter @forge/cli forge eval",
+    "eval": "tsx packages/cli/src/forge.ts eval",
     "demo:check": "pnpm run eval",
     "verify": "pnpm run doctor && pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run eval"
   },
@@ -23,6 +23,8 @@
     "prettier": "3.5.3",
     "typescript": "5.8.3",
     "vitest": "3.1.2",
-    "zod": "3.24.3"
+    "zod": "3.24.3",
+    "tsx": "4.19.3",
+    "@playwright/test": "1.52.0"
   }
 }

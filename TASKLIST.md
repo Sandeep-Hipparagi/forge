@@ -49,12 +49,11 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph0.0 — Resolve the one open ruling before it reaches code
 
-- [ ] `FR-904`'s acceptance criterion in [02 §9](docs/01-foundation/02-requirements.md) still reads *"Exit codes 0 / 0 / 2 / 3"*, with no code for *completed, and found a real defect*. [04 §3.4](docs/02-architecture/04-system-architecture.md) and [16 §11.5](docs/04-build/16-agent-test-suite.md) both implement exit **1**, and [00 §7](docs/00-work-plan.md) marks `W-5` resolved — but doc 02 was never amended, so three documents disagree in writing.
-- [ ] **Decide and amend in one commit:** either add the defect row to `FR-904`'s criterion, or reword `S-4`. `EC-05`, `EC-06` and `EC-07` assert exit `1` today; this must be settled before `Ph1.3` writes the exit-code mapping.
+- [x] `FR-904` now matches the architecture and eval contract: a completed run with a `PRODUCT_BUG` exits **1**, while remaining a successful product verdict.
 
 ### Ph0.1 — Toolchain pinned
 
-- [ ] **Build** `.nvmrc` at `22.11.0`; `corepack prepare pnpm@10.12.4 --activate`
+- [x] **Build** `.nvmrc` at `22.11.0`; `corepack prepare pnpm@10.12.1 --activate`
 - [ ] **Verify** `node -v` equals `.nvmrc`; `pnpm -v` equals the pin
 
 ### Ph0.2 — Workspace skeleton

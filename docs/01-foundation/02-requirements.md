@@ -184,7 +184,7 @@
 | `FR-901` | MUST | Drive the pipeline as a typed finite state machine — no open-ended agent loop. | Every transition is an enumerated case; an illegal transition throws at compile time and is unit-tested at runtime. |
 | `FR-902` | MUST | Process capabilities as **laps**: one capability is planned, critiqued, generated, run, healed and reported before the next begins. | The event log shows no interleaving between laps in serial mode. |
 | `FR-903` | MUST | Persist every state transition before emitting it, so a mid-run restart resumes from storage. | Killing the API mid-lap and restarting resumes the same session at the same lap. |
-| `FR-904` | MUST | Terminate in exactly one of: `COMPLETED`, `COMPLETED_PARTIAL`, `ESCALATED`, `ERROR`. | Exit codes 0 / 0 / 2 / 3. A found defect is `COMPLETED`, not `ERROR`. |
+| `FR-904` | MUST | Terminate in exactly one of: `COMPLETED`, `COMPLETED_PARTIAL`, `ESCALATED`, `ERROR`. | Exit codes: `COMPLETED` is 0 with no defects and **1** with ≥1 `PRODUCT_BUG`; `COMPLETED_PARTIAL` follows the same 0/1 rule; `ESCALATED` is 2; `ERROR` is 3. A found defect is a successful `COMPLETED` outcome. |
 | `FR-905` | MUST | Isolate sub-agent failure: one failed lap never aborts the session. | Injecting a Planner failure on lap 2 of 4 still yields a report covering laps 1, 3 and 4. |
 | `FR-906` | MUST | Retry every model call and browser action with bounded exponential backoff and a hard ceiling. | Retry policy is declared per call site in [21 · Resilience](../05-delivery/21-resilience.md); no unbounded loops exist. |
 | `FR-907` | SHOULD | In Copilot mode, checkpoint between laps and rehydrate on resume. | Approving after an hour resumes without re-exploring. |

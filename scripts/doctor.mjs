@@ -1,7 +1,18 @@
-const major = Number(process.versions.node.split(".")[0]);
+import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
-if (major !== 22) {
-  console.error(`forge doctor: expected Node 22.x from .nvmrc; found ${process.version}`);
+const expectedNode = readFileSync(".nvmrc", "utf8").trim();
+const expectedPnpm = "10.12.1";
+const pnpm = spawnSync("pnpm", ["--version"], { encoding: "utf8" });
+const errors = [];
+
+if (process.version.slice(1) !== expectedNode) errors.push(`expected Node ${expectedNode}; found ${process.version}`);
+if (pnpm.status !== 0 || pnpm.stdout.trim() !== expectedPnpm) errors.push(`expected pnpm ${expectedPnpm}`);
+if (process.env.FORGE_DISPOSABLE_TARGET === "true" && process.env.FORGE_ALLOWED_HOSTS?.split(",").some((host) => !["localhost", "127.0.0.1"].includes(host))) {
+  errors.push("disposable targets require loopback-only allowed hosts");
+}
+if (errors.length > 0) {
+  console.error(`forge doctor: FAIL\n- ${errors.join("\n- ")}`);
   process.exit(1);
 }
 
