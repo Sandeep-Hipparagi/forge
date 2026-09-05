@@ -1,0 +1,17 @@
+{
+  "name": "@forge/runner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@forge/core": "workspace:*",
+    "@forge/perception": "workspace:*",
+    "playwright": "^1.49.1"
+  }
+}

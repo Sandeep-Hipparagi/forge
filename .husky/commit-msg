@@ -1,0 +1,8 @@
+msg_file="$1"
+first_line=$(head -n1 "$msg_file")
+
+if ! echo "$first_line" | grep -qE '^(Ph[0-6](\.[0-9]+)?|docs|fix) [^:]+: .+'; then
+  echo "commit-msg: first line must read 'Ph<n> <area>: imperative summary' (or 'docs <area>: ...' / 'fix <area>: ...') — 15 §8.1"
+  echo "got: $first_line"
+  exit 1
+fi

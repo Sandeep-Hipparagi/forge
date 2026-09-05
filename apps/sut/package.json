@@ -1,0 +1,14 @@
+{
+  "name": "@forge/sut",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "tsx watch src/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

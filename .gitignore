@@ -2,17 +2,34 @@ node_modules/
 dist/
 .next/
 out/
+next-env.d.ts
 
 artifacts/
 apps/sut/state/
 
 .env
 .env.local
+.env*.local
 
 *.db
 *.db-wal
 *.db-shm
 
+.auth/
+
 *.tsbuildinfo
 .DS_Store
+Thumbs.db
 freeze.manifest.json
+
+# Test/build byproducts — not source, never committed
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*

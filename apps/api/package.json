@@ -1,0 +1,20 @@
+{
+  "name": "@forge/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@fastify/sensible": "^6.0.3",
+    "@forge/core": "workspace:*",
+    "@forge/orchestrator": "workspace:*",
+    "fastify": "^5.2.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
+  }
+}

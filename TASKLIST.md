@@ -1,21 +1,21 @@
 # FORGE · Task List
 
 > **What this is.** The step-by-step build order for the implementation, cut into checkpoints small enough to verify one at a time. It carries **no specification detail** — every task points at the document that owns the answer.
-> **What this is not.** A status tracker. That is [`docs/00-work-plan.md`](docs/00-work-plan.md), and it stays the only file that answers *"where are we?"*.
+> **What this is not.** A status tracker. That is [`docs/00-work-plan.md`](docs/00-work-plan.md), and it stays the only file that answers _"where are we?"_.
 > **The ritual.** Finish a checkpoint, run its verify command, tick the boxes. At the end of a phase, **stop.** The next phase starts only when it is asked for.
 
 ---
 
 ## How to use this file
 
-| | |
-|---|---|
-| **Rhythm** | Every checkpoint is three beats, always in this order: **Test → Build → Verify** |
-| **IDs** | `Ph0`…`Ph6` are the phases from [20 · Execution Plan](docs/05-delivery/20-execution-plan.md) and are **not renumbered**. `Ph2.3` is a checkpoint inside `Ph2` — a decimal extension, not a new ID family |
-| **Done** | A checkpoint is done when its verify command is green. A *phase* is done when its exit gate is green. Nothing is "mostly done" |
-| **The gate** | Each phase ends in a **⏸ STOP** block. Do not begin the next phase until the user asks for it |
-| **Definition of Done** | The nine-item list in [15 §9](docs/04-build/15-repo-and-conventions.md). Read it, do not re-derive it |
-| **When behind** | The scope-cut ladder in [20 §5](docs/05-delivery/20-execution-plan.md). Never cut schemas, persistence, the Critic floor, the vetoes, or the refuse-to-heal case |
+|                        |                                                                                                                                                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Rhythm**             | Every checkpoint is three beats, always in this order: **Test → Build → Verify**                                                                                                                         |
+| **IDs**                | `Ph0`…`Ph6` are the phases from [20 · Execution Plan](docs/05-delivery/20-execution-plan.md) and are **not renumbered**. `Ph2.3` is a checkpoint inside `Ph2` — a decimal extension, not a new ID family |
+| **Done**               | A checkpoint is done when its verify command is green. A _phase_ is done when its exit gate is green. Nothing is "mostly done"                                                                           |
+| **The gate**           | Each phase ends in a **⏸ STOP** block. Do not begin the next phase until the user asks for it                                                                                                            |
+| **Definition of Done** | The nine-item list in [15 §9](docs/04-build/15-repo-and-conventions.md). Read it, do not re-derive it                                                                                                    |
+| **When behind**        | The scope-cut ladder in [20 §5](docs/05-delivery/20-execution-plan.md). Never cut schemas, persistence, the Critic floor, the vetoes, or the refuse-to-heal case                                         |
 
 **Why Test before Build, everywhere.** [16 · Agent Test Suite](docs/04-build/16-agent-test-suite.md) was written before the agent, and writing it surfaced five specification contradictions ([16 §11](docs/04-build/16-agent-test-suite.md)) while they were still one-line fixes. That ordering is the project's cheapest quality mechanism, and this file simply refuses to abandon it at the code layer.
 
@@ -29,15 +29,15 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ## Phase map
 
-| Phase | Delivers | Exit gate | Detail |
-|---|---|---|---|
-| **`Ph0`** Pre-flight | Workspace, guardrails, CI — on an empty tree | `pnpm lint`, `pnpm verify`, `pnpm doctor` all green | [15 §11](docs/04-build/15-repo-and-conventions.md) |
-| **`Ph1`** Spine | Schemas, store, FSM + 11 guards, loop harness, API/SSE, eval harness | A stubbed session runs start to finish | [20](docs/05-delivery/20-execution-plan.md), [04](docs/02-architecture/04-system-architecture.md), [05](docs/02-architecture/05-data-model.md) |
-| **`Ph2`** Explorer | Auth, perception, frontier, clustering, ranking | `EC-02` — a map with the model gone | [08](docs/02-architecture/08-perception-layer.md), [09](docs/03-algorithms/09-exploration-and-prioritisation.md) |
-| **`Ph3`** Planner + Critic | Plans, coverage score, the re-plan loop | `EC-03` — a weak plan is sent back and clears the floor | [10](docs/03-algorithms/10-planner.md), [11](docs/03-algorithms/11-coverage-critic.md) |
-| **`Ph4`** Generator + Runner | Compiler, live validation, execution, evidence | `EC-01` — a suite is emitted and runs green | [12](docs/03-algorithms/12-generator.md) |
-| **`Ph5`** Triage + Healer | Six causes, scoring, vetoes, patch, rollback, verify | `EC-05` heals · `EC-06` refuses | [13](docs/03-algorithms/13-triage-and-healing.md) |
-| **`Ph6`** Reporter + UI | Score, report, dashboard, demo | `EC-07` and the 4:00 script twice clean | [14](docs/03-algorithms/14-quality-report-and-score.md), [18](docs/04-build/18-ui-spec.md), [22](docs/05-delivery/22-demo-runbook.md) |
+| Phase                        | Delivers                                                             | Exit gate                                               | Detail                                                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`Ph0`** Pre-flight         | Workspace, guardrails, CI — on an empty tree                         | `pnpm lint`, `pnpm verify`, `pnpm doctor` all green     | [15 §11](docs/04-build/15-repo-and-conventions.md)                                                                                             |
+| **`Ph1`** Spine              | Schemas, store, FSM + 11 guards, loop harness, API/SSE, eval harness | A stubbed session runs start to finish                  | [20](docs/05-delivery/20-execution-plan.md), [04](docs/02-architecture/04-system-architecture.md), [05](docs/02-architecture/05-data-model.md) |
+| **`Ph2`** Explorer           | Auth, perception, frontier, clustering, ranking                      | `EC-02` — a map with the model gone                     | [08](docs/02-architecture/08-perception-layer.md), [09](docs/03-algorithms/09-exploration-and-prioritisation.md)                               |
+| **`Ph3`** Planner + Critic   | Plans, coverage score, the re-plan loop                              | `EC-03` — a weak plan is sent back and clears the floor | [10](docs/03-algorithms/10-planner.md), [11](docs/03-algorithms/11-coverage-critic.md)                                                         |
+| **`Ph4`** Generator + Runner | Compiler, live validation, execution, evidence                       | `EC-01` — a suite is emitted and runs green             | [12](docs/03-algorithms/12-generator.md)                                                                                                       |
+| **`Ph5`** Triage + Healer    | Six causes, scoring, vetoes, patch, rollback, verify                 | `EC-05` heals · `EC-06` refuses                         | [13](docs/03-algorithms/13-triage-and-healing.md)                                                                                              |
+| **`Ph6`** Reporter + UI      | Score, report, dashboard, demo                                       | `EC-07` and the 4:00 script twice clean                 | [14](docs/03-algorithms/14-quality-report-and-score.md), [18](docs/04-build/18-ui-spec.md), [22](docs/05-delivery/22-demo-runbook.md)          |
 
 ---
 
@@ -45,43 +45,44 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 **Goal.** An empty workspace that already refuses the mistakes we would otherwise make at hour five.
 **Read first.** [15 §2](docs/04-build/15-repo-and-conventions.md) (layout) · [15 §11](docs/04-build/15-repo-and-conventions.md) (the ordered pre-flight) · [README §MVP shape](README.md)
-**At this phase the guardrails *are* the tests.** There is no source to unit-test yet; the import graph, the lint rules and the CI jobs are the assertions.
+**At this phase the guardrails _are_ the tests.** There is no source to unit-test yet; the import graph, the lint rules and the CI jobs are the assertions.
 
 ### Ph0.0 — Resolve the one open ruling before it reaches code
 
-- [ ] `FR-904`'s acceptance criterion in [02 §9](docs/01-foundation/02-requirements.md) still reads *"Exit codes 0 / 0 / 2 / 3"*, with no code for *completed, and found a real defect*. [04 §3.4](docs/02-architecture/04-system-architecture.md) and [16 §11.5](docs/04-build/16-agent-test-suite.md) both implement exit **1**, and [00 §7](docs/00-work-plan.md) marks `W-5` resolved — but doc 02 was never amended, so three documents disagree in writing.
-- [ ] **Decide and amend in one commit:** either add the defect row to `FR-904`'s criterion, or reword `S-4`. `EC-05`, `EC-06` and `EC-07` assert exit `1` today; this must be settled before `Ph1.3` writes the exit-code mapping.
+- [x] `FR-904`'s acceptance criterion in [02 §9](docs/01-foundation/02-requirements.md) still reads _"Exit codes 0 / 0 / 2 / 3"_, with no code for _completed, and found a real defect_. [04 §3.4](docs/02-architecture/04-system-architecture.md) and [16 §11.5](docs/04-build/16-agent-test-suite.md) both implement exit **1**, and [00 §7](docs/00-work-plan.md) marks `W-5` resolved — but doc 02 was never amended, so three documents disagree in writing.
+- [x] **Decide and amend in one commit:** either add the defect row to `FR-904`'s criterion, or reword `S-4`. `EC-05`, `EC-06` and `EC-07` assert exit `1` today; this must be settled before `Ph1.3` writes the exit-code mapping.
 
 ### Ph0.1 — Toolchain pinned
 
-- [ ] **Build** `.nvmrc` at `22.11.0`; `corepack prepare pnpm@10.12.4 --activate`
-- [ ] **Verify** `node -v` equals `.nvmrc`; `pnpm -v` equals the pin
+- [x] **Build** `.nvmrc` at `22.11.0`; `corepack prepare pnpm@10.12.4 --activate`
+- [x] **Verify** `node -v` equals `.nvmrc`; `pnpm -v` equals the pin
 
 ### Ph0.2 — Workspace skeleton
 
-- [ ] **Build** `pnpm-workspace.yaml`, root `package.json` with the scripts in [15 §6.1](docs/04-build/15-repo-and-conventions.md) *verbatim*, `tsconfig.base.json` from [15 §3](docs/04-build/15-repo-and-conventions.md), and every directory in [15 §2](docs/04-build/15-repo-and-conventions.md) with an empty package manifest
-- [ ] **Build** `.env.example` complete and valueless, from [15 §7](docs/04-build/15-repo-and-conventions.md); `.gitignore` from [15 §8.3](docs/04-build/15-repo-and-conventions.md)
-- [ ] **Verify** `pnpm install` succeeds; `pnpm typecheck` is green on the empty tree
+- [x] **Build** `pnpm-workspace.yaml`, root `package.json` with the scripts in [15 §6.1](docs/04-build/15-repo-and-conventions.md) _verbatim_, `tsconfig.base.json` from [15 §3](docs/04-build/15-repo-and-conventions.md), and every directory in [15 §2](docs/04-build/15-repo-and-conventions.md) with an empty package manifest
+- [x] **Build** `.env.example` complete and valueless, from [15 §7](docs/04-build/15-repo-and-conventions.md); `.gitignore` from [15 §8.3](docs/04-build/15-repo-and-conventions.md)
+- [x] **Verify** `pnpm install` succeeds; `pnpm typecheck` is green on the empty tree
 
 ### Ph0.3 — Guardrails, on the empty tree
 
-- [ ] **Build** `.dependency-cruiser.cjs` — all **eight** rules from [15 §2.2](docs/04-build/15-repo-and-conventions.md), copied exactly
-- [ ] **Build** ESLint: the no-throw law scoped to tool paths ([15 §4.1](docs/04-build/15-repo-and-conventions.md)) and the three determinism restrictions ([15 §4.4](docs/04-build/15-repo-and-conventions.md)). Prettier. `vitest.config.ts`, `playwright.config.ts`
-- [ ] **Verify** `pnpm lint` green — *before* any feature code exists. This is the step [15 §11](docs/04-build/15-repo-and-conventions.md) says is the whole point of the phase
+- [x] **Build** `.dependency-cruiser.cjs` — all **eight** rules from [15 §2.2](docs/04-build/15-repo-and-conventions.md), copied exactly
+- [x] **Build** ESLint: the no-throw law scoped to tool paths ([15 §4.1](docs/04-build/15-repo-and-conventions.md)) and the three determinism restrictions ([15 §4.4](docs/04-build/15-repo-and-conventions.md)). Prettier. `vitest.config.ts`, `playwright.config.ts`
+- [x] **Verify** `pnpm lint` green — _before_ any feature code exists. This is the step [15 §11](docs/04-build/15-repo-and-conventions.md) says is the whole point of the phase
 
 ### Ph0.4 — CI and hooks
 
-- [ ] **Build** the five jobs in [15 §10](docs/04-build/15-repo-and-conventions.md) — `guard`, `unit`, `replay`, `golden`, `nightly`. No retries, no `continue-on-error`
-- [ ] **Build** the machine-owned-path guard ([15 §8.2](docs/04-build/15-repo-and-conventions.md)) and the three git hooks ([15 §10.2](docs/04-build/15-repo-and-conventions.md))
-- [ ] **Verify** a throwaway commit touching `tests/generated/**` fails the guard job
+- [x] **Build** the five jobs in [15 §10](docs/04-build/15-repo-and-conventions.md) — `guard`, `unit`, `replay`, `golden`, `nightly`. No retries, no `continue-on-error`
+- [x] **Build** the machine-owned-path guard ([15 §8.2](docs/04-build/15-repo-and-conventions.md)) and the three git hooks ([15 §10.2](docs/04-build/15-repo-and-conventions.md))
+- [x] **Verify** a throwaway commit touching `tests/generated/**` fails the guard job
 
 ### Ph0.5 — Browser and doctor
 
-- [ ] **Build** `playwright install chromium --with-deps`, pinned; the browser revision in the CI cache key
-- [ ] **Build** `forge doctor` — Node, pnpm, Chromium revision, ports, model reachability, and the three safety-env failure conditions in [15 §7](docs/04-build/15-repo-and-conventions.md)
-- [ ] **Verify** `pnpm doctor` exits non-zero when a pin is drifted, zero when it is not
+- [x] **Build** `playwright install chromium --with-deps`, pinned; the browser revision in the CI cache key
+- [x] **Build** `forge doctor` — Node, pnpm, Chromium revision, ports, model reachability, and the three safety-env failure conditions in [15 §7](docs/04-build/15-repo-and-conventions.md)
+- [x] **Verify** `pnpm doctor` exits non-zero when a pin is drifted, zero when it is not
 
 > ### ⏸ Ph0 exit gate
+>
 > `pnpm lint` · `pnpm verify` · `pnpm doctor` — all green on an empty workspace. The `FR-904` ruling is written down.
 > **Stop here. Ph1 begins on request.**
 
@@ -121,7 +122,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 ### Ph1.4 — `runAgentLoop()`
 
 - [ ] **Test** each `exitReason` in [06 §2](docs/02-architecture/06-agent-contracts.md) — `EMITTED`, all three ceilings, `FORCED_CLOSE`, `SCHEMA_FAILED` after two failures, `MODEL_UNAVAILABLE`
-- [ ] **Test** the forced close produces a *partial, validated* artefact and propagates into `haltReason`
+- [ ] **Test** the forced close produces a _partial, validated_ artefact and propagates into `haltReason`
 - [ ] **Build** the harness in `packages/agents/harness` — the only place in the repo that imports `@anthropic-ai/*`, enforced by `one-model-client`
 - [ ] **Verify** `pnpm lint` fails if a second `import Anthropic` is added anywhere
 
@@ -146,6 +147,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 - [ ] **Build** tag or note the schema freeze in [00 · Work Plan](docs/00-work-plan.md), same commit
 
 > ### ⏸ Ph1 exit gate
+>
 > A stubbed session runs start to finish over the real API, through the real FSM, persisted and replayable. Eleven guard tests and eleven invariant tests green. **`packages/core/schema` is now frozen.**
 > **Stop here. Ph2 begins on request.**
 
@@ -190,11 +192,12 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph2.6 — The agent loop, last
 
-- [ ] **Build** `packages/agents/explorer` on the `Ph1.4` harness — the model chooses *what to visit next*, nothing else ([06 §4.1](docs/02-architecture/06-agent-contracts.md))
+- [ ] **Build** `packages/agents/explorer` on the `Ph1.4` harness — the model chooses _what to visit next_, nothing else ([06 §4.1](docs/02-architecture/06-agent-contracts.md))
 - [ ] **Build** the breadth-first deterministic fallback
 - [ ] **Verify** `pnpm forge eval --case EC-02` — **zero model calls**, `source: "deterministic"`, exit 0
 
 > ### ⏸ Ph2 exit gate
+>
 > `EC-02` green on both tiers with `ANTHROPIC_API_KEY` unset, and `forge explore <url>` produces a map on a real target.
 > **Stop here. Ph3 begins on request.**
 
@@ -229,15 +232,16 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 ### Ph3.4 — The re-plan loop
 
 - [ ] **Test** `TG-6`'s refusal: `replanRounds` 2 → the third round never happens · the cap yields `ACCEPT_RISK`, not a silent pass
-- [ ] **Test** `TG-5b`'s three branches, including *blocks at score 1.0 when a `BLOCKER` exists*
+- [ ] **Test** `TG-5b`'s three branches, including _blocks at score 1.0 when a `BLOCKER` exists_
 - [ ] **Build** the loop, `Lap.acceptedRisk[]`, and `carriedGaps` into the next planning call
 - [ ] **Build** `packages/agents/planner` and `packages/agents/critic` on the harness — the semantic half only, clamped to `MAJOR`
 
-### Ph3.5 — PRD gap analysis *(bonus `B1` — first on the cut ladder)*
+### Ph3.5 — PRD gap analysis _(bonus `B1` — first on the cut ladder)_
 
 - [ ] **Build** [11 §8](docs/03-algorithms/11-coverage-critic.md), `FR-307`
 
 > ### ⏸ Ph3 exit gate
+>
 > `pnpm forge eval --case EC-03` green **with the API key unset**: `0.4519` → `REPLAN` with both reasons → `0.8435` → `PASS` with 4 residual gaps, round 0 retained.
 > **Stop here. Ph4 begins on request.**
 
@@ -275,6 +279,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 - [ ] **Verify** `trace.zip` opens in Trace Viewer
 
 > ### ⏸ Ph4 exit gate
+>
 > `pnpm forge eval --case EC-01 --tier live` — full pipeline, nothing broken, heal attempts **0**, two consecutive runs with identical verdict tuples, exit 0. Cold-clone portability is `EC-07` and waits for `Ph6` ([16 §11.3](docs/04-build/16-agent-test-suite.md)).
 > **Stop here. Ph5 begins on request.**
 
@@ -294,7 +299,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph5.2 — Signatures and the repeat cache
 
-- [ ] **Test** the second occurrence of one root cause costs no model call and reports *"same root cause as SC-nnn"*
+- [ ] **Test** the second occurrence of one root cause costs no model call and reports _"same root cause as SC-nnn"_
 - [ ] **Build** [13 §4](docs/03-algorithms/13-triage-and-healing.md)
 
 ### Ph5.3 — Candidates and the six-signal score
@@ -306,7 +311,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ### Ph5.4 — The five vetoes
 
-- [ ] **Test** one dedicated test per veto, **both halves** — the *does not fire* column in [16 §8.1](docs/04-build/16-agent-test-suite.md) is as load-bearing as the *fires* column
+- [ ] **Test** one dedicated test per veto, **both halves** — the _does not fire_ column in [16 §8.1](docs/04-build/16-agent-test-suite.md) is as load-bearing as the _fires_ column
 - [ ] **Test** `V2` blocks at `0.71`, well inside the band a similarity-only healer would accept (`EC-06`)
 - [ ] **Test** `I-3` — an assertion-kind step never receives a patch
 - [ ] **Build** `packages/core/healing/vetoes` ([13 §10](docs/03-algorithms/13-triage-and-healing.md)). Vetoes are evaluated **before** any score
@@ -329,6 +334,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 - [ ] **Verify** the deterministic pre-classifier verdict stands when the model is gone (`FR-605`)
 
 > ### ⏸ Ph5 exit gate
+>
 > `EC-05` heals and refuses in one lap (exit 1) · `EC-06` refuses twice for two different reasons (exit 1) · `EC-04` escalates on `V4` (exit 2), with `git diff` on the generated suite **empty** for every refusal.
 > **Stop here. Ph6 begins on request.**
 
@@ -370,6 +376,7 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 - [ ] **Verify** `forge eval --tier replay --repeat 5` byte-identical verdict tuples (`D1`, the gate); `--tier live --repeat 3` stable on the `D2` fields ([16 §4.2](docs/04-build/16-agent-test-suite.md))
 
 > ### ⏸ Ph6 exit gate
+>
 > `EC-07` green including the cold-clone portable suite and the zero-credential grep · 7/7 on the live tier · the 4:00 script runs twice clean.
 > **Stop. This is the deliverable.**
 
@@ -379,21 +386,21 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 The specification distributes these across five documents. This table exists only to say **when** each one gets its named test, so nothing arrives at `Ph6` unasserted.
 
-| Family | Total | Owned by |
-|---|---:|---|
-| `TG-1`…`TG-11` transition guards | 11 | **`Ph1.3`** — all eleven, transition and refusal |
-| `I-1` `I-2` `I-9` `I-16` store | 4 | `Ph1.2` |
-| `I-4` `I-7` `I-11` `I-12` `I-13` `I-15` FSM and grounding | 6 | `Ph1.3` |
-| `I-8` evidence resolution | 1 | `Ph1.2` (store half) → `Ph5.1` (diagnosis half) |
-| `I-17` `I-20` perception and ranking | 2 | `Ph2.2`, `Ph2.5` |
-| `I-14` scenario identity | 1 | `Ph3.3` |
-| `I-3` `I-5` `I-6` `I-10` healing | 4 | `Ph5.1`, `Ph5.3`, `Ph5.4`, `Ph5.6` |
-| `I-18` `I-19` report | 2 | `Ph6.1` |
-| `V1`…`V5` vetoes, both halves | 5 | `Ph5.4` |
-| `EC-01`…`EC-07` golden cases | 7 | `Ph2`–`Ph6` exit gates |
-| `R-1`…`R-4` rehearsals | 4 | `Ph6.5` |
-| Threshold boundaries, both sides | 7 | `Ph3.1`, `Ph5.3`, `Ph5.5` |
-| The five emergent-property tests | 5 | `Ph3.1` (2), `Ph5.3` (2), `Ph3.1`/`Ph5.4` (1) |
+| Family                                                    | Total | Owned by                                         |
+| --------------------------------------------------------- | ----: | ------------------------------------------------ |
+| `TG-1`…`TG-11` transition guards                          |    11 | **`Ph1.3`** — all eleven, transition and refusal |
+| `I-1` `I-2` `I-9` `I-16` store                            |     4 | `Ph1.2`                                          |
+| `I-4` `I-7` `I-11` `I-12` `I-13` `I-15` FSM and grounding |     6 | `Ph1.3`                                          |
+| `I-8` evidence resolution                                 |     1 | `Ph1.2` (store half) → `Ph5.1` (diagnosis half)  |
+| `I-17` `I-20` perception and ranking                      |     2 | `Ph2.2`, `Ph2.5`                                 |
+| `I-14` scenario identity                                  |     1 | `Ph3.3`                                          |
+| `I-3` `I-5` `I-6` `I-10` healing                          |     4 | `Ph5.1`, `Ph5.3`, `Ph5.4`, `Ph5.6`               |
+| `I-18` `I-19` report                                      |     2 | `Ph6.1`                                          |
+| `V1`…`V5` vetoes, both halves                             |     5 | `Ph5.4`                                          |
+| `EC-01`…`EC-07` golden cases                              |     7 | `Ph2`–`Ph6` exit gates                           |
+| `R-1`…`R-4` rehearsals                                    |     4 | `Ph6.5`                                          |
+| Threshold boundaries, both sides                          |     7 | `Ph3.1`, `Ph5.3`, `Ph5.5`                        |
+| The five emergent-property tests                          |     5 | `Ph3.1` (2), `Ph5.3` (2), `Ph3.1`/`Ph5.4` (1)    |
 
 **`Ph1.3` carries eleven guard tests and `Ph5.4` carries ten veto assertions.** Those two checkpoints are where this build is won or lost — everything else is arithmetic with a test beside it.
 

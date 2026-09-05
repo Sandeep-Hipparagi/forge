@@ -6,9 +6,58 @@ FORGE accepts a URL and optional login, explores the application, builds a capab
 
 ## Repository purpose
 
-The `main` branch is the clean, documentation-first starting point for building the MVP from scratch. It intentionally contains no previous implementation, package manifests, generated output, or stale scaffold. The specification in [`docs/`](docs/README.md) is the source of truth.
+The specification in [`docs/`](docs/README.md) is the source of truth: every behaviour the code has to satisfy is written down there before it is implemented. `main` started as a documentation-only baseline and now also carries the implementation, built phase by phase against [`TASKLIST.md`](TASKLIST.md).
 
-This branch is **not executable yet**. There is deliberately no `package.json` or lockfile to install. Those files should be created during the first implementation phase from the contracts below, then committed on an implementation branch or in a follow-up change to `main`.
+**Current status: `Ph0` (pre-flight) is complete.** The workspace installs, lints, typechecks, and `pnpm doctor` is green — see [Quickstart](#quickstart) below. No product behaviour exists yet; that starts at `Ph1`. See [Status](#status) and [`TASKLIST.md`](TASKLIST.md) for exactly what is and isn't built.
+
+## Quickstart
+
+Get a clean clone running in about five minutes.
+
+**Prerequisites**
+
+| Tool                           | Version                                                                 | Notes                                                                                                                                                              |
+| ------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Git](https://git-scm.com/)    | any recent                                                              |                                                                                                                                                                    |
+| [Node.js](https://nodejs.org/) | **22.11.0** (pinned in [`.nvmrc`](.nvmrc))                              | Use [nvm](https://github.com/nvm-sh/nvm) (macOS/Linux) or [nvm-windows](https://github.com/coreybutler/nvm-windows) if your machine has a different Node installed |
+| pnpm                           | **10.12.4** (pinned in [`package.json`](package.json) `packageManager`) | Installed via Corepack, not globally                                                                                                                               |
+| Chromium                       | installed by Playwright                                                 | one command below, no separate download                                                                                                                            |
+| Anthropic API key              | optional                                                                | only for live model runs — replay/deterministic mode works with none                                                                                               |
+
+**Install and verify**
+
+```bash
+git clone <repository-url>
+cd forge
+
+# 1 · toolchain — skip the nvm lines if node -v already prints 22.11.0
+nvm install        # reads .nvmrc
+nvm use
+corepack enable
+corepack prepare pnpm@10.12.4 --activate
+
+# 2 · dependencies
+pnpm install
+pnpm exec playwright install chromium --with-deps
+
+# 3 · environment (no real values needed to pass doctor/verify)
+cp .env.example .env      # Windows: copy .env.example .env
+
+# 4 · prove the workspace is wired correctly
+pnpm doctor    # toolchain, browser, safety-env checks — must exit 0
+pnpm verify    # typecheck && lint && test && replay-tier eval — must exit 0
+```
+
+If `pnpm doctor` fails, it prints exactly which pin drifted (Node version, pnpm version, missing Chromium, or a widened safety env var) — fix that one thing and re-run.
+
+**Run something**
+
+```bash
+pnpm dev          # web (:3000) + api (:4000) + sut (:4100), in parallel
+pnpm dev:sut      # just the bundled target app, alone
+```
+
+There is no end-to-end product behaviour yet (that lands starting `Ph1`), so `pnpm dev` currently boots empty scaffolds — useful to confirm the toolchain works, not to see FORGE do anything.
 
 ## What to read first
 
@@ -34,29 +83,29 @@ The two defining behaviours are:
 
 ## Agreed technology stack
 
-| Area | Choice | Purpose |
-|---|---|---|
-| Runtime | Node.js 22.11+ | Supported execution environment |
-| Package manager | pnpm 10.12+ | Workspace management and reproducible installs |
-| Language | TypeScript 5.9+ | Strict application and domain code |
-| API | Fastify 5 | REST API, SSE events, and orchestration host |
-| Web UI | Next.js 15, React | Mission Control dashboard |
-| Browser automation | Playwright Test | Exploration, generation validation, execution, and evidence |
-| Perception | Playwright accessibility snapshots | Deterministic page state and affordances |
-| Domain validation | Zod | Runtime schemas and inferred TypeScript types |
-| Persistence | SQLite via `better-sqlite3` | Sessions, laps, decisions, and historical evidence index |
-| Evidence files | Content-addressed filesystem | Screenshots, traces, and generated suites |
-| Model integration | Anthropic Messages API and SDK | Bounded structured-output model calls |
-| Testing | Vitest plus Playwright Test | Pure unit, replay/golden, and live browser tests |
-| Quality | ESLint, Prettier, dependency-cruiser, TypeScript | Formatting, linting, type safety, and import boundaries |
-| Packaging | Docker Compose | Optional one-command local/demo deployment |
-| CI | GitHub Actions | Install, typecheck, lint, unit, and golden checks |
+| Area               | Choice                                           | Purpose                                                     |
+| ------------------ | ------------------------------------------------ | ----------------------------------------------------------- |
+| Runtime            | Node.js 22.11+                                   | Supported execution environment                             |
+| Package manager    | pnpm 10.12+                                      | Workspace management and reproducible installs              |
+| Language           | TypeScript 5.9+                                  | Strict application and domain code                          |
+| API                | Fastify 5                                        | REST API, SSE events, and orchestration host                |
+| Web UI             | Next.js 15, React                                | Mission Control dashboard                                   |
+| Browser automation | Playwright Test                                  | Exploration, generation validation, execution, and evidence |
+| Perception         | Playwright accessibility snapshots               | Deterministic page state and affordances                    |
+| Domain validation  | Zod                                              | Runtime schemas and inferred TypeScript types               |
+| Persistence        | SQLite via `better-sqlite3`                      | Sessions, laps, decisions, and historical evidence index    |
+| Evidence files     | Content-addressed filesystem                     | Screenshots, traces, and generated suites                   |
+| Model integration  | Anthropic Messages API and SDK                   | Bounded structured-output model calls                       |
+| Testing            | Vitest plus Playwright Test                      | Pure unit, replay/golden, and live browser tests            |
+| Quality            | ESLint, Prettier, dependency-cruiser, TypeScript | Formatting, linting, type safety, and import boundaries     |
+| Packaging          | Docker Compose                                   | Optional one-command local/demo deployment                  |
+| CI                 | GitHub Actions                                   | Install, typecheck, lint, unit, and golden checks           |
 
 The model is an adapter, not the source of truth. Deterministic code owns schemas, scoring, state transitions, compilation, safety vetoes, persistence, and reporting. The selected default model is documented in [LLM integration](docs/02-architecture/07-llm-integration.md); `FORGE_LLM_ENABLED=false` must support offline replay and evaluation.
 
 ## MVP implementation shape
 
-The future implementation is a pnpm workspace with these intentional boundaries:
+The implementation is a pnpm workspace with these intentional boundaries:
 
 ```text
 apps/web       Next.js dashboard
@@ -76,48 +125,8 @@ artifacts/      Runtime output only; never source
 
 The detailed dependency graph and package responsibilities are in [Repository & conventions](docs/04-build/15-repo-and-conventions.md). Do not recreate the old singular `packages/agent` package or copy the removed scaffold.
 
-## Day-one setup after implementation begins
-
-Clone this branch and read the documents first:
-
-```bash
-git clone <repository-url>
-cd qa-agent-research
-```
-
-Install these prerequisites before the first implementation commit:
-
-- Git
-- Node.js 22.11 or newer
-- pnpm 10.12 or newer (`corepack enable` is recommended)
-- Chromium installed by Playwright
-- Docker Desktop, only if using the container path
-- An Anthropic API key, only for live model runs; replay mode works without one
-
-The implementation branch must then add the workspace manifests and run:
-
-```bash
-corepack enable
-pnpm install
-pnpm exec playwright install chromium
-copy .env.example .env
-pnpm verify
-pnpm doctor
-```
-
-The commands are normative once implemented by the CLI and workspace described in the docs. The MVP phase order is [`20 · Execution Plan`](docs/05-delivery/20-execution-plan.md): build the pure spine and replay harness first, then connect Playwright and the model, then add the UI and Docker path.
-
-## Main branch file policy
-
-| Keep on documentation baseline | Move to an implementation branch or recreate later |
-|---|---|
-| `README.md`, all reviewed `docs/**/*.md`, and `.gitignore` | `package.json`, `pnpm-lock.yaml`, and `pnpm-workspace.yaml` |
-| Requirements, architecture, algorithms, ADRs, runbook, and risks | `apps/**` and `packages/**` source and manifests |
-| Problem statement and deferred design notes | `fixtures/**`, generated artifacts, databases, and build output |
-| This README's technology and bootstrap contract | CI, TypeScript, ESLint, Prettier, Playwright, Docker, and environment config |
-
-Keeping the implementation out of this baseline prevents an AI coding agent from treating incomplete scaffold code as an authority. The implementation branch should be created from this branch and should add files in the order defined by the execution plan.
+See [Quickstart](#quickstart) above for the tested install steps. The MVP phase order is [`20 · Execution Plan`](docs/05-delivery/20-execution-plan.md) and [`TASKLIST.md`](TASKLIST.md): the pure spine and replay harness first (`Ph1`), then Playwright and the model (`Ph2`–`Ph5`), then the UI and Docker path (`Ph6`).
 
 ## Status
 
-Documentation is complete and ready to implement. No end-to-end application has been implemented on this baseline. See [the work plan](docs/00-work-plan.md) for the phase gates and [the agent test suite](docs/04-build/16-agent-test-suite.md) for the first executable contract to build.
+Documentation is complete. `Ph0` (pre-flight) is complete: the pnpm workspace, dependency-cruiser/ESLint/Prettier guardrails, CI, git hooks, pinned Chromium, and `forge doctor` all exist and pass — `pnpm lint`, `pnpm verify`, and `pnpm doctor` are green. No product behaviour exists yet; that starts at `Ph1` (schemas, store, FSM, `runAgentLoop()`, API/SSE, eval harness). See [`TASKLIST.md`](TASKLIST.md) for the full checkpoint-by-checkpoint state, [the work plan](docs/00-work-plan.md) for the documentation history, and [the agent test suite](docs/04-build/16-agent-test-suite.md) for the executable contract `Ph1` builds against.

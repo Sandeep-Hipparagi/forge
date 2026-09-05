@@ -1,0 +1,23 @@
+{
+  "name": "@forge/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@forge/agent-harness": "workspace:*",
+    "@forge/agent-explorer": "workspace:*",
+    "@forge/agent-planner": "workspace:*",
+    "@forge/agent-critic": "workspace:*",
+    "@forge/agent-triage": "workspace:*",
+    "@forge/core": "workspace:*",
+    "@forge/perception": "workspace:*",
+    "@forge/runner": "workspace:*",
+    "@forge/store": "workspace:*"
+  }
+}

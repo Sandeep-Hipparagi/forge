@@ -1,0 +1,52 @@
+{
+  "name": "forge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "packageManager": "pnpm@10.12.4",
+  "scripts": {
+    "forge": "node packages/cli/dist/bin.js",
+    "dev": "pnpm -r --parallel dev",
+    "dev:sut": "pnpm --filter @forge/sut dev",
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && depcruise --config .dependency-cruiser.cjs packages apps",
+    "typecheck": "tsc -b --pretty false && tsc -p apps/web --noEmit --pretty false",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm forge eval --tier replay",
+    "reset": "pnpm forge reset",
+    "doctor": "pnpm forge doctor",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,cjs,mjs,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.1",
+    "dependency-cruiser": "^16.7.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  }
+}

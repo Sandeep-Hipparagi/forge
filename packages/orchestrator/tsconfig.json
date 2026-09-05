@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "references": [
+    { "path": "../agents/harness" },
+    { "path": "../agents/explorer" },
+    { "path": "../agents/planner" },
+    { "path": "../agents/critic" },
+    { "path": "../agents/triage" },
+    { "path": "../core" },
+    { "path": "../perception" },
+    { "path": "../runner" },
+    { "path": "../store" }
+  ],
+  "include": ["src"]
+}

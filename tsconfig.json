@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/perception" },
+    { "path": "packages/agents/harness" },
+    { "path": "packages/agents/explorer" },
+    { "path": "packages/agents/planner" },
+    { "path": "packages/agents/critic" },
+    { "path": "packages/agents/triage" },
+    { "path": "packages/runner" },
+    { "path": "packages/orchestrator" },
+    { "path": "packages/store" },
+    { "path": "packages/evals" },
+    { "path": "packages/cli" },
+    { "path": "apps/api" }
+  ]
+}

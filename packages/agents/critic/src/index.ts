@@ -1,0 +1,1 @@
+export const FORGE_AGENT_CRITIC_VERSION = "0.0.0";
