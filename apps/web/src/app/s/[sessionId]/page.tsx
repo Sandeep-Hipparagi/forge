@@ -12,6 +12,8 @@ import {
 } from "../../../lib/api";
 import { buildPipeline, statusLabel, type PipelineStep } from "../../../lib/pipeline";
 
+const DEMO_VIDEO_URL = process.env.NEXT_PUBLIC_FORGE_DEMO_VIDEO_URL ?? "";
+
 function glyph(status: PipelineStep["status"]): string {
   if (status === "done") return "✓";
   if (status === "active") return "◉";
@@ -328,6 +330,14 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
             <p className="pipeline-intro">
               {selected?.label ?? "Waiting for the agent to open the first page…"}
             </p>
+            {DEMO_VIDEO_URL && (
+              <p className="lede-small">
+                End-to-end demo video (same footage for every run):{" "}
+                <a href={DEMO_VIDEO_URL} target="_blank" rel="noreferrer">
+                  Watch how screenshots are captured →
+                </a>
+              </p>
+            )}
             {selected !== null ? (
               <img
                 key={selected.id}
