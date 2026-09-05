@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FORGE | Autonomous test orchestration</title>
+  <style>
+    :root {
+      --ink: #172126;
+      --muted: #637078;
+      --paper: #f5f1e8;
+      --white: #fffdf8;
+      --coral: #df6848;
+      --coral-dark: #a94632;
+      --teal: #1c7773;
+      --teal-light: #d9efeb;
+      --yellow: #f1c85b;
+      --line: #d8d1c4;
+      --shadow: 0 18px 50px rgba(23, 33, 38, .12);
+      --display: "Trebuchet MS", "Segoe UI", sans-serif;
+      --body: "Segoe UI", Tahoma, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink); }
+    body { font-family: var(--body); overflow: hidden; }
+    .deck { min-height: 100vh; position: relative; }
+    .slide {
+      display: none; min-height: 100vh; padding: 7vh 8vw 10vh;
+      position: relative; overflow: auto; isolation: isolate;
+    }
+    .slide.active { display: flex; flex-direction: column; animation: arrive .45s ease both; }
+    .slide::before { content: ""; position: absolute; inset: 0; z-index: -2; background: radial-gradient(circle at 85% 12%, rgba(241, 200, 91, .25), transparent 25%), radial-gradient(circle at 10% 95%, rgba(28, 119, 115, .12), transparent 28%); }
+    .slide::after { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .22; pointer-events: none; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 44px 44px; mask-image: linear-gradient(to bottom, black, transparent 75%); }
+    .kicker { color: var(--coral-dark); font: 700 .75rem var(--display); letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: 0; }
+    h1 { max-width: 920px; font-size: clamp(3rem, 8vw, 7.2rem); line-height: .94; }
+    h2 { max-width: 920px; font-size: clamp(2.2rem, 5vw, 5rem); line-height: .98; }
+    h3 { font-size: 1.15rem; }
+    p { max-width: 680px; color: var(--muted); font-size: clamp(1rem, 1.4vw, 1.3rem); line-height: 1.5; }
+    .lead { color: var(--ink); font-size: clamp(1.2rem, 2vw, 1.75rem); max-width: 720px; }
+    .accent { color: var(--coral); }
+    .teal { color: var(--teal); }
+    .stage { margin-top: auto; margin-bottom: auto; }
+    .footer { position: absolute; left: 8vw; right: 8vw; bottom: 3.2vh; display: flex; justify-content: space-between; color: var(--muted); font-size: .78rem; }
+    .tag { display: inline-flex; padding: .45rem .7rem; border: 1px solid var(--line); border-radius: 999px; color: var(--teal); font-size: .8rem; font-weight: 700; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-top: 2.5rem; }
+    .card { background: rgba(255,253,248,.82); border: 1px solid var(--line); border-radius: 8px; padding: 1.35rem; box-shadow: 0 8px 22px rgba(23,33,38,.05); }
+    .card strong { display: block; font: 700 1.25rem var(--display); margin: .45rem 0; }
+    .card p { margin: 0; font-size: 1rem; }
+    .diagram { width: 100%; max-width: 1100px; margin-top: 2.2rem; background: rgba(255,253,248,.7); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; box-shadow: var(--shadow); }
+    svg { display: block; width: 100%; height: auto; }
+    .plan { display: grid; grid-template-columns: repeat(6, 1fr); gap: .6rem; margin-top: 2.3rem; align-items: end; }
+    .phase { min-height: 150px; padding: .8rem; background: var(--white); border: 1px solid var(--line); border-bottom: 5px solid var(--teal); border-radius: 7px; }
+    .phase:nth-child(2), .phase:nth-child(5) { border-bottom-color: var(--coral); }
+    .phase b { display: block; font: 700 1rem var(--display); }
+    .phase small { display: block; margin-top: .65rem; color: var(--muted); line-height: 1.35; }
+    .time { color: var(--coral-dark); font-weight: 700; font-size: .8rem; }
+    .resource-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem 2rem; margin-top: 1.4rem; max-width: 840px; }
+    a { color: var(--teal); font-weight: 700; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+    .controls { position: fixed; z-index: 5; right: 2rem; bottom: 1.65rem; display: flex; align-items: center; gap: .7rem; }
+    button { width: 42px; height: 42px; border: 1px solid var(--ink); border-radius: 50%; background: var(--white); color: var(--ink); font-size: 1.2rem; cursor: pointer; }
+    button:hover, button:focus-visible { background: var(--yellow); outline: 3px solid rgba(223,104,72,.3); }
+    .counter { min-width: 3rem; text-align: center; color: var(--muted); font-size: .8rem; }
+    .progress { position: fixed; z-index: 6; top: 0; left: 0; height: 5px; width: 11.11%; background: var(--coral); transition: width .35s ease; }
+    .stamp { display: inline-block; margin-top: 2rem; padding: .9rem 1.1rem; background: var(--ink); color: var(--white); font: 700 1rem var(--display); transform: rotate(-2deg); }
+    @keyframes arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    @media (max-width: 760px) {
+      body { overflow: auto; }
+      .slide { padding: 10vh 7vw 13vh; min-height: 100svh; }
+      .grid-3, .plan, .resource-list { grid-template-columns: 1fr; }
+      .phase { min-height: auto; }
+      .footer { left: 7vw; right: 7vw; }
+      .controls { right: 1rem; bottom: 1rem; }
+      .diagram { padding: .35rem; }
+    }
+    @media print {
+      body { overflow: visible; }
+      .slide, .slide.active { display: flex; page-break-after: always; min-height: 100vh; }
+      .controls, .progress { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="FORGE presentation">
+    <div class="progress" aria-hidden="true"></div>
+
+    <section class="slide active" data-title="The idea">
+      <div class="stage">
+        <span class="kicker">Autonomous test orchestration</span>
+        <h1 style="margin-top:1.2rem">Meet <span class="accent">FORGE.</span></h1>
+        <p class="lead">Give it a URL. It explores the app, builds a useful test suite, and tells you what the result really means.</p>
+        <span class="stamp">Truth over green builds</span>
+      </div>
+      <div class="footer"><span>01 / 09</span><span>Project story · September 2026</span></div>
+    </section>
+
+    <section class="slide" data-title="The problem">
+      <div class="stage">
+        <span class="kicker">The honest problem</span>
+        <h2 style="margin-top:1rem">Testing is not short on tools.<br><span class="teal">It is short on decisions.</span></h2>
+        <p class="lead">What should we test? Did we miss something important? Did the test break, or did the product?</p>
+        <div class="grid-3">
+          <article class="card"><span class="kicker">01 · Discover</span><strong>What matters here?</strong><p>People click through the app and carry the map in their heads.</p></article>
+          <article class="card"><span class="kicker">02 · Judge</span><strong>Did we test enough?</strong><p>A coverage percentage can still hide a missing checkout or error path.</p></article>
+          <article class="card"><span class="kicker">03 · Explain</span><strong>What actually broke?</strong><p>A red test is a question, not permission to make the build green.</p></article>
+        </div>
+      </div>
+      <div class="footer"><span>02 / 09</span><span>Based on the challenge problem statement</span></div>
+    </section>
+
+    <section class="slide" data-title="The promise">
+      <div class="stage">
+        <span class="kicker">One simple promise</span>
+        <h2 style="margin-top:1rem">One URL in.<br><span class="accent">Evidence out.</span></h2>
+        <p class="lead">FORGE does the repetitive work, but keeps the judgement visible. Every important decision has a reason attached to it.</p>
+        <div class="diagram">
+          <svg viewBox="0 0 1000 190" role="img" aria-label="URL becomes a test suite and quality report">
+            <defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#df6848"/></marker></defs>
+            <rect x="25" y="50" width="220" height="92" rx="8" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="135" y="84" text-anchor="middle" font-family="Trebuchet MS" font-size="18" font-weight="700" fill="#172126">A URL</text><text x="135" y="112" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#637078">+ optional login / intent</text>
+            <path d="M260 96 H370" stroke="#df6848" stroke-width="4" marker-end="url(#arrow)"/><text x="315" y="78" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#a94632">FORGE thinks</text>
+            <rect x="390" y="30" width="220" height="132" rx="8" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="500" y="65" text-anchor="middle" font-family="Trebuchet MS" font-size="17" font-weight="700" fill="#172126">A capability map</text><text x="500" y="94" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#637078">flows · edge cases</text><text x="500" y="119" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#637078">evidence · decisions</text>
+            <path d="M625 96 H735" stroke="#df6848" stroke-width="4" marker-end="url(#arrow)"/><text x="680" y="78" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#a94632">then proves</text>
+            <rect x="755" y="50" width="220" height="92" rx="8" fill="#f1c85b" stroke="#a94632" stroke-width="2"/><text x="865" y="84" text-anchor="middle" font-family="Trebuchet MS" font-size="17" font-weight="700" fill="#172126">A real suite</text><text x="865" y="112" text-anchor="middle" font-family="Segoe UI" font-size="14" fill="#172126">+ a quality report</text>
+          </svg>
+        </div>
+      </div>
+      <div class="footer"><span>03 / 09</span><span>URL-only ingestion is the starting contract</span></div>
+    </section>
+
+    <section class="slide" data-title="The loop">
+      <div class="stage">
+        <span class="kicker">The system in one picture</span>
+        <h2 style="margin-top:1rem">A loop that gets wiser<br><span class="teal">before it gets louder.</span></h2>
+        <div class="diagram">
+          <svg viewBox="0 0 1000 260" role="img" aria-label="FORGE pipeline from explore to report">
+            <defs><marker id="loopArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#1c7773"/></marker></defs>
+            <path d="M70 90 H930" stroke="#1c7773" stroke-width="4" marker-end="url(#loopArrow)"/>
+            <path d="M930 90 C930 215 70 215 70 145" fill="none" stroke="#df6848" stroke-width="4" marker-end="url(#loopArrow)"/>
+            <g font-family="Trebuchet MS" font-size="16" font-weight="700" text-anchor="middle" fill="#172126">
+              <circle cx="70" cy="90" r="38" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="70" y="95">Explore</text>
+              <circle cx="190" cy="90" r="38" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="190" y="95">Plan</text>
+              <circle cx="310" cy="90" r="38" fill="#f1c85b" stroke="#a94632" stroke-width="2"/><text x="310" y="95">Critique</text>
+              <circle cx="430" cy="90" r="38" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="430" y="95">Generate</text>
+              <circle cx="550" cy="90" r="38" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="550" y="95">Run</text>
+              <circle cx="670" cy="90" r="38" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="670" y="95">Triage</text>
+              <circle cx="790" cy="90" r="38" fill="#f1c85b" stroke="#a94632" stroke-width="2"/><text x="790" y="95">Heal?</text>
+              <circle cx="930" cy="90" r="38" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="930" y="95">Report</text>
+            </g>
+            <text x="500" y="206" text-anchor="middle" font-family="Segoe UI" font-size="15" fill="#637078">One capability at a time · highest risk first · every result banked</text>
+          </svg>
+        </div>
+        <p>Two moments make the loop special: <b>Critique happens before code</b>, and <b>triage happens before healing</b>.</p>
+      </div>
+      <div class="footer"><span>04 / 09</span><span>Explore → Plan → Critique → Generate → Run → Triage → Heal or escalate → Report</span></div>
+    </section>
+
+    <section class="slide" data-title="The trust story">
+      <div class="stage">
+        <span class="kicker">The part worth remembering</span>
+        <h2 style="margin-top:1rem">A good healer knows<br><span class="accent">when to stop.</span></h2>
+        <p class="lead">Locators are addresses. Assertions are claims. FORGE may repair an address. It never rewrites the truth it was asked to check.</p>
+        <div class="diagram">
+          <svg viewBox="0 0 1000 230" role="img" aria-label="Failure is triaged into heal, report defect, or escalate">
+            <defs><marker id="forkArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#df6848"/></marker></defs>
+            <rect x="25" y="75" width="210" height="80" rx="8" fill="#f1c85b" stroke="#a94632" stroke-width="2"/><text x="130" y="108" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="19">A failure</text><text x="130" y="134" text-anchor="middle" font-family="Segoe UI" font-size="14">is a question</text>
+            <path d="M250 115 H345" stroke="#df6848" stroke-width="4" marker-end="url(#forkArrow)"/><rect x="365" y="75" width="210" height="80" rx="8" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="470" y="108" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="19">Triage</text><text x="470" y="134" text-anchor="middle" font-family="Segoe UI" font-size="14">evidence + confidence</text>
+            <path d="M590 115 H650 M650 115 V55 H710 M650 115 H710 M650 115 V185 H710" fill="none" stroke="#df6848" stroke-width="3" marker-end="url(#forkArrow)"/>
+            <rect x="730" y="20" width="240" height="62" rx="8" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="850" y="47" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="16">HEAL</text><text x="850" y="68" text-anchor="middle" font-family="Segoe UI" font-size="13">locator break, no veto</text>
+            <rect x="730" y="84" width="240" height="62" rx="8" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="850" y="111" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="16">REPORT DEFECT</text><text x="850" y="132" text-anchor="middle" font-family="Segoe UI" font-size="13">product evidence wins</text>
+            <rect x="730" y="168" width="240" height="62" rx="8" fill="#f5f1e8" stroke="#a94632" stroke-width="2"/><text x="850" y="195" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="16">ESCALATE</text><text x="850" y="216" text-anchor="middle" font-family="Segoe UI" font-size="13">ambiguous? ask a human</text>
+          </svg>
+        </div>
+      </div>
+      <div class="footer"><span>05 / 09</span><span>Five vetoes protect product truth</span></div>
+    </section>
+
+    <section class="slide" data-title="The architecture">
+      <div class="stage">
+        <span class="kicker">How it stays dependable</span>
+        <h2 style="margin-top:1rem">Agency where the world is unknown.<br><span class="teal">Determinism where answers are audited.</span></h2>
+        <div class="grid-3">
+          <article class="card"><span class="kicker">The model</span><strong>Explores and reasons</strong><p>It finds capabilities, proposes scenarios, and helps with unfamiliar failures.</p></article>
+          <article class="card"><span class="kicker">The kernel</span><strong>Checks and compiles</strong><p>Typed schemas, scores, vetoes, test generation, persistence, and reports are deterministic.</p></article>
+          <article class="card"><span class="kicker">The runner</span><strong>Shows the evidence</strong><p>Playwright executes the generated suite and captures what really happened.</p></article>
+        </div>
+        <div class="diagram">
+          <svg viewBox="0 0 1000 130" role="img" aria-label="Dashboard, API orchestrator, target, store and model architecture">
+            <rect x="25" y="34" width="175" height="62" rx="7" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="112" y="61" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="17">Dashboard</text><text x="112" y="82" text-anchor="middle" font-family="Segoe UI" font-size="13" fill="#637078">see every decision</text>
+            <path d="M210 65 H295 M390 65 H475 M570 65 H655 M750 65 H835" stroke="#1c7773" stroke-width="3" marker-end="url(#loopArrow)"/>
+            <rect x="310" y="34" width="170" height="62" rx="7" fill="#d9efeb" stroke="#1c7773" stroke-width="2"/><text x="395" y="61" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="17">Orchestrator</text><text x="395" y="82" text-anchor="middle" font-family="Segoe UI" font-size="13" fill="#637078">typed FSM</text>
+            <rect x="495" y="34" width="170" height="62" rx="7" fill="#f1c85b" stroke="#a94632" stroke-width="2"/><text x="580" y="61" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="17">Target URL</text><text x="580" y="82" text-anchor="middle" font-family="Segoe UI" font-size="13" fill="#172126">any web app</text>
+            <rect x="680" y="34" width="145" height="62" rx="7" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="752" y="61" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="17">SQLite</text><text x="752" y="82" text-anchor="middle" font-family="Segoe UI" font-size="13" fill="#637078">history + evidence</text>
+            <rect x="840" y="34" width="135" height="62" rx="7" fill="#fffdf8" stroke="#d8d1c4" stroke-width="2"/><text x="907" y="61" text-anchor="middle" font-family="Trebuchet MS" font-weight="700" font-size="17">LLM</text><text x="907" y="82" text-anchor="middle" font-family="Segoe UI" font-size="13" fill="#637078">bounded calls</text>
+          </svg>
+        </div>
+      </div>
+      <div class="footer"><span>06 / 09</span><span>Local-first · replayable · model output is data, never code</span></div>
+    </section>
+
+    <section class="slide" data-title="The build plan">
+      <div class="stage">
+        <span class="kicker">A plan an engineer can trust</span>
+        <h2 style="margin-top:1rem">Six phases.<br><span class="accent">Six proof points.</span></h2>
+        <p class="lead">The implementation order follows risk: build the spine and replay harness first, then connect the browser and model.</p>
+        <div class="plan">
+          <div class="phase"><span class="time">15 min</span><b>Ph0 · Pre-flight</b><small>workspace, browser, doctor</small></div>
+          <div class="phase"><span class="time">60 min</span><b>Ph1 · Spine</b><small>schemas, store, FSM, API</small></div>
+          <div class="phase"><span class="time">90 min</span><b>Ph2 · Explorer</b><small>URL to capability map</small></div>
+          <div class="phase"><span class="time">90 min</span><b>Ph3 · Critic</b><small>reject, re-plan, clear floor</small></div>
+          <div class="phase"><span class="time">90 min</span><b>Ph4 · Runner</b><small>generate, run, capture</small></div>
+          <div class="phase"><span class="time">75 + 90</span><b>Ph5–6 · Truth</b><small>heal safely, report, demo</small></div>
+        </div>
+        <p><b>The floor:</b> URL → explore → plan → critique → generate → run → classify → report, with the refuse-to-heal case working.</p>
+      </div>
+      <div class="footer"><span>07 / 09</span><span>Execution plan · 8 hours · hard exit gates</span></div>
+    </section>
+
+    <section class="slide" data-title="Why it stands out">
+      <div class="stage">
+        <span class="kicker">Why this is more than a demo</span>
+        <h2 style="margin-top:1rem">It makes the invisible<br><span class="teal">work visible.</span></h2>
+        <div class="grid-3">
+          <article class="card"><strong>Not just happy paths</strong><p>Risk-ranked capabilities include edge cases, error states, and named gaps.</p></article>
+          <article class="card"><strong>Not just green tests</strong><p>A real product defect is a successful, non-zero result, not something to hide.</p></article>
+          <article class="card"><strong>Not just model magic</strong><p>The important answers survive without a key: schemas, scoring, vetoes, and replay.</p></article>
+        </div>
+        <div class="resource-list">
+          <a href="01-foundation/01-vision-and-scope.md">Read the vision and scope</a>
+          <a href="02-architecture/04-system-architecture.md">See the full architecture</a>
+          <a href="03-algorithms/11-coverage-critic.md">See how coverage is judged</a>
+          <a href="03-algorithms/13-triage-and-healing.md">See the healing vetoes</a>
+          <a href="04-build/16-agent-test-suite.md">See the golden test cases</a>
+          <a href="05-delivery/20-execution-plan.md">Follow the execution plan</a>
+        </div>
+      </div>
+      <div class="footer"><span>08 / 09</span><span>Curious? The source documents are one click away.</span></div>
+    </section>
+
+    <section class="slide" data-title="The close">
+      <div class="stage">
+        <span class="kicker">The north star</span>
+        <h1 style="margin-top:1.2rem">FORGE does the volume.<br><span class="accent">People keep the judgement.</span></h1>
+        <p class="lead">That is the useful balance: autonomous enough to remove the queue, careful enough to earn trust.</p>
+        <p><a href="../README.md">Back to the project README</a> · <a href="00-work-plan.md">Open the current work plan</a></p>
+      </div>
+      <div class="footer"><span>09 / 09</span><span>Build the thing that tells the truth</span></div>
+    </section>
+  </main>
+
+  <nav class="controls" aria-label="Slide controls">
+    <button type="button" data-action="prev" aria-label="Previous slide" title="Previous slide">&#8592;</button>
+    <span class="counter" aria-live="polite">1 / 9</span>
+    <button type="button" data-action="next" aria-label="Next slide" title="Next slide">&#8594;</button>
+  </nav>
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll('.slide')];
+      const counter = document.querySelector('.counter');
+      const progress = document.querySelector('.progress');
+      let current = 0;
+      const show = (index) => {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((slide, position) => slide.classList.toggle('active', position === current));
+        counter.textContent = `${current + 1} / ${slides.length}`;
+        progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+        document.title = `FORGE | ${slides[current].dataset.title}`;
+      };
+      document.querySelector('[data-action="prev"]').addEventListener('click', () => show(current - 1));
+      document.querySelector('[data-action="next"]').addEventListener('click', () => show(current + 1));
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight' || event.key === ' ') show(current + 1);
+        if (event.key === 'ArrowLeft') show(current - 1);
+        if (event.key === 'Home') show(0);
+        if (event.key === 'End') show(slides.length - 1);
+      });
+    })();
+  </script>
+</body>
+</html>
