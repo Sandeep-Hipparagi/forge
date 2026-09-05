@@ -15,6 +15,8 @@
 | `RK-07` | Demo state is contaminated by an earlier mutation or heal | `forge reset`, clean fixture, reset before every rehearsal | Abort and reset; never repair state by hand |
 | `RK-08` | UI hides uncertainty or makes decisions hard to inspect | Always show source, score, vetoes, evidence, and halt reason | Use the report and evidence artifacts |
 | `RK-09` | Scope expands beyond the time budget | Use the ladder in [21 · Resilience](21-resilience.md) | Cut optional breadth, never safety or the loop |
+| `RK-10` | A schema-valid `TestPlan` compiles to TypeScript that fails to typecheck, so `TG-7` live validation or post-heal full-flow verification can never run ([ADR-006](../decisions/ADR-006-spec-as-source-of-truth.md), [ADR-010](../decisions/ADR-010-post-heal-verification.md)) | Deterministic, byte-identical compiler with its own unit suite ([12](../03-algorithms/12-generator.md)); typecheck the regenerated file before verification | Verify against the in-memory `TestPlan` instead; report the file write as a separate, visible failure — never claim `VERIFIED` off an unverified file |
+| `RK-11` | External validation platforms (`EXT-01`…`EXT-10`) are unowned and can change, rate-limit, or reset mid-session — one confirmed resets its own data every 10 minutes | Supplementary only; never gate a phase exit or the `EC-nn` suite on one; re-confirm shape live before relying on any claim | Drop the platform for this session; fall back to the canonical roster |
 
 ## 2. Non-negotiable floor
 
@@ -26,4 +28,4 @@ Review this table at the start of each execution phase and after every failed ex
 
 ## 4. Related evidence
 
-The golden cases and rehearsals are defined in [04-build/16-agent-test-suite.md](../04-build/16-agent-test-suite.md). Deployment constraints are in [ADR-015](../decisions/ADR-015-deployment.md), perception transport in [ADR-016](../decisions/ADR-016-perception-transport.md), and arithmetic blocking in [ADR-017](../decisions/ADR-017-arithmetic-blocks.md).
+The golden cases and rehearsals are defined in [04-build/16-agent-test-suite.md](../04-build/16-agent-test-suite.md). Deployment constraints are in [ADR-015](../decisions/ADR-015-deployment.md), perception transport in [ADR-016](../decisions/ADR-016-perception-transport.md), and arithmetic blocking in [ADR-017](../decisions/ADR-017-arithmetic-blocks.md). `RK-11`'s external platforms are catalogued in [../target-apps/external-platforms.md](../target-apps/external-platforms.md).
