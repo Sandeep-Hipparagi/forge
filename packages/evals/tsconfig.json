@@ -5,10 +5,12 @@
     "rootDir": "./src"
   },
   "references": [
+    { "path": "../agents/explorer" },
     { "path": "../agents/harness" },
     { "path": "../../apps/api" },
     { "path": "../core" },
     { "path": "../orchestrator" },
+    { "path": "../perception" },
     { "path": "../store" }
   ],
   "include": ["src"]

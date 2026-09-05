@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { AccessibilityNode, AccessibilitySnapshot, DomFacts } from "./types.js";
 import { affordancesOf, DESTRUCTIVE, stateSignature } from "./snapshot.js";
@@ -52,12 +54,29 @@ describe("affordancesOf", () => {
     };
     const affs = affordancesOf(snap(root));
     expect(affs.map((a) => a.ref)).toEqual(["e1", "e2", "e3"]);
-    expect(affs.find((a) => a.ref === "e1")?.destructive).toBe(true);
-    expect(affs.find((a) => a.ref === "e2")?.destructive).toBe(true);
-    expect(affs.find((a) => a.ref === "e3")?.destructive).toBe(false);
+    const place = affs.find((a) => a.ref === "e1")!;
+    const cancel = affs.find((a) => a.ref === "e2")!;
+    const help = affs.find((a) => a.ref === "e3")!;
+    expect(place.destructive).toBe(true);
+    expect(place.observedNotExercised).toBe(true);
+    expect(place.notExercisedReason).toBe("DENY_LIST");
+    expect(cancel.destructive).toBe(true);
+    expect(cancel.observedNotExercised).toBe(true);
+    expect(cancel.notExercisedReason).toBe("DENY_LIST");
+    expect(help.destructive).toBe(false);
+    expect(help.observedNotExercised).toBe(false);
+    expect(help.notExercisedReason).toBeNull();
     expect(DESTRUCTIVE.test("Place order")).toBe(true);
   });
 });
+
+function loadFixture(name: string): { snapshot: AccessibilitySnapshot; dom: DomFacts } {
+  const repositoryRoot = join(__dirname, "..", "..", "..");
+  const path = join(repositoryRoot, "fixtures", "perception", `${name}.snapshot.yaml`);
+  const raw = readFileSync(path, "utf8");
+  const parsed = JSON.parse(raw) as { snapshot: AccessibilitySnapshot; dom: DomFacts };
+  return parsed;
+}
 
 describe("detectLoginForm", () => {
   const dom: DomFacts = {
@@ -98,5 +117,14 @@ describe("detectLoginForm", () => {
     expect(form?.submitRef).toBe("b1");
     expect(form?.scopeRef).toBe("f1");
     expect(form?.confidence).toBeCloseTo(1.0, 3);
+  });
+
+  it("reaches confidence 1.0 on all three perception fixtures with zero configuration", () => {
+    for (const name of ["aperture-checkout", "saucedemo-login", "conduit-editor"] as const) {
+      const { snapshot, dom: fixtureDom } = loadFixture(name);
+      const form = detectLoginForm(snapshot, fixtureDom);
+      expect(form, `fixture ${name} should have a detected login form`).not.toBeNull();
+      expect(form!.confidence).toBeCloseTo(1.0, 3);
+    }
   });
 });

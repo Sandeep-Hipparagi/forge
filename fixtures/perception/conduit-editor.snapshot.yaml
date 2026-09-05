@@ -1,0 +1,58 @@
+{
+  "snapshot": {
+    "url": "https://conduit.test/signin",
+    "title": "Conduit · Sign in",
+    "root": {
+      "role": "main",
+      "name": null,
+      "children": [
+        {
+          "role": "heading",
+          "name": "Sign in",
+          "children": []
+        },
+        {
+          "role": "form",
+          "name": "Sign in",
+          "ref": "f1",
+          "children": [
+            {
+              "role": "textbox",
+              "name": "Email",
+              "ref": "e1"
+            },
+            {
+              "role": "textbox",
+              "name": "Password",
+              "ref": "e2"
+            },
+            {
+              "role": "button",
+              "name": "Sign in",
+              "ref": "b1"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "dom": {
+    "inputs": {
+      "e1": {
+        "type": "email",
+        "autocomplete": "email",
+        "name": "email",
+        "id": "email",
+        "placeholder": "Email"
+      },
+      "e2": {
+        "type": "password",
+        "autocomplete": "current-password",
+        "name": "password",
+        "id": "password",
+        "placeholder": "Password"
+      }
+    }
+  }
+}
+

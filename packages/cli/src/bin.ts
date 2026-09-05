@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runDoctor } from "./commands/doctor.js";
 import { runEval } from "./commands/eval.js";
+import { runExplore } from "./commands/explore.js";
 import { runReset } from "./commands/reset.js";
 import { runSession } from "./commands/run.js";
 
@@ -43,6 +44,9 @@ async function main(): Promise<number> {
         coverage: Boolean(flags.coverage),
       });
 
+    case "explore":
+      return await runExplore(rest, repoRoot);
+
     case "run":
       return await runSession(rest[0]);
 
@@ -51,7 +55,7 @@ async function main(): Promise<number> {
 
     default:
       console.error(
-        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available: doctor, eval, reset, run.`,
+        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available: doctor, eval, explore, reset, run.`,
       );
       return 1;
   }

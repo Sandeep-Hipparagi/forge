@@ -96,4 +96,6 @@ export interface SnapshotAffordance {
   destructive: boolean;
   observedNotExercised: boolean;
   notExercisedReason: string | null;
+  /** Absolute or relative href when the control is a link — used for FR-109 origin scope. */
+  href?: string | null;
 }

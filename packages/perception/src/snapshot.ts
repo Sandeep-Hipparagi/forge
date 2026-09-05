@@ -186,8 +186,9 @@ export function affordancesOf(snapshot: AccessibilitySnapshot): SnapshotAffordan
         enabled,
         bbox: null,
         destructive,
-        observedNotExercised: false,
-        notExercisedReason: null,
+        observedNotExercised: destructive,
+        notExercisedReason: destructive ? "DENY_LIST" : null,
+        href: node.href ?? null,
       });
     }
     if (node.children) {

@@ -1,14 +1,29 @@
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildForgeServer } from "@forge/api";
-import type { RunContext, SessionStatus } from "@forge/core";
+import type { CapabilityMap, RunContext, SessionStatus } from "@forge/core";
+import { exploreSession, rankCapabilities } from "@forge/orchestrator";
 import { ForgeStore } from "@forge/store";
 import { z } from "zod";
+import { createEc02FixturePorts } from "./ec02-fixture.js";
+
+const ExploreExpect = z
+  .object({
+    choiceSource: z.enum(["deterministic", "llm"]),
+    modelCalls: z.number().int().nonnegative(),
+    haltReason: z.enum(["EXHAUSTED", "STATE_BUDGET", "TIME_BUDGET", "CALL_BUDGET"]),
+    minCapabilities: z.number().int().positive().optional(),
+    minStates: z.number().int().positive().optional(),
+    productVariantsCollapsed: z.boolean().optional(),
+    denyListObserved: z.boolean().optional(),
+  })
+  .optional();
 
 const CaseFile = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   seed: z.number().int(),
+  mode: z.enum(["session", "explore"]).default("session"),
   given: z.object({
     reset: z.literal(true),
     session: z.object({
@@ -25,6 +40,7 @@ const CaseFile = z.object({
         })
         .optional(),
     }),
+    env: z.record(z.string()).optional(),
   }),
   expect: z.object({
     session: z.object({
@@ -32,6 +48,7 @@ const CaseFile = z.object({
       exitCode: z.number().int().min(0).max(3),
       defectsFound: z.number().int().nonnegative(),
     }),
+    explore: ExploreExpect,
   }),
   requirements: z.array(z.string()).default([]),
 });
@@ -53,6 +70,16 @@ export type Verdict = {
   };
   backlog: string[];
   laps: Array<{ capabilityId: string; outcome: string | null }>;
+  explore?: {
+    choiceSource: "deterministic" | "llm";
+    modelCalls: number;
+    haltReason: CapabilityMap["frontier"]["haltReason"];
+    capabilities: number;
+    states: number;
+    productVariantsCollapsed: boolean;
+    denyListObserved: boolean;
+    rankingStable: boolean;
+  };
 };
 
 export type CaseResult = {
@@ -77,7 +104,9 @@ export function loadCases(repositoryRoot: string, caseId?: string): CaseFile[] {
   );
 }
 
-function seededContext(seed: number): RunContext {
+function seededContext(seed: number): RunContext & {
+  clock: RunContext["clock"] & { advance(ms: number): void };
+} {
   let state = seed >>> 0;
   let sequence = 0;
   const nextRandom = (): number => {
@@ -88,6 +117,9 @@ function seededContext(seed: number): RunContext {
     clock: {
       now: () => new globalThis.Date(1_767_225_600_000 + sequence),
       monotonicMs: () => sequence,
+      advance: (ms: number) => {
+        sequence += ms;
+      },
     },
     rng: { next: nextRandom },
     ids: {
@@ -99,7 +131,106 @@ function seededContext(seed: number): RunContext {
   };
 }
 
-async function executeCase(
+function withEnv(
+  env: Record<string, string> | undefined,
+  run: () => Promise<Verdict>,
+): Promise<Verdict> {
+  if (env === undefined) return run();
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(env)) {
+    previous.set(key, process.env[key]);
+    process.env[key] = value;
+  }
+  // EC-02 also requires the API key unset.
+  if (env["FORGE_LLM_ENABLED"] === "false") {
+    previous.set("ANTHROPIC_API_KEY", process.env["ANTHROPIC_API_KEY"]);
+    delete process.env["ANTHROPIC_API_KEY"];
+  }
+  return run().finally(() => {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+}
+
+async function executeExploreCase(
+  repositoryRoot: string,
+  testCase: CaseFile,
+  repeatIndex: number,
+): Promise<Verdict> {
+  const context = seededContext(testCase.seed);
+  const runDirectory = join(repositoryRoot, "artifacts", "evals", `${testCase.id}-${repeatIndex}`);
+  rmSync(runDirectory, { recursive: true, force: true });
+  mkdirSync(runDirectory, { recursive: true });
+  const store = new ForgeStore({
+    databasePath: join(runDirectory, "forge.db"),
+    repositoryRoot,
+    context,
+  });
+
+  try {
+    const result = await exploreSession({
+      store,
+      context,
+      input: {
+        url: testCase.given.session.url,
+        ...(testCase.given.session.username !== undefined
+          ? { username: testCase.given.session.username }
+          : {}),
+        ...(testCase.given.session.password !== undefined
+          ? { password: testCase.given.session.password }
+          : {}),
+        ...(testCase.given.session.intent !== undefined
+          ? { intent: testCase.given.session.intent }
+          : {}),
+        forceDeterministic: true,
+        terminal: true,
+        driver: createEc02FixturePorts(context.clock, context.ids),
+      },
+    });
+
+    const productState = result.map.states.find((state) => state.signature === "product000000000");
+    const denyListObserved = result.map.affordances.some(
+      (affordance) =>
+        affordance.destructive &&
+        affordance.observedNotExercised &&
+        /place order/i.test(affordance.accessibleName ?? ""),
+    );
+
+    const orders: string[][] = [];
+    for (let i = 0; i < 5; i += 1) {
+      orders.push(rankCapabilities(result.map).map(({ name }) => name));
+    }
+    const rankingStable = orders.every(
+      (order) => JSON.stringify(order) === JSON.stringify(orders[0]),
+    );
+
+    return {
+      session: {
+        status: result.session.status,
+        exitCode: result.session.exitCode,
+        defectsFound: result.session.defectsFound,
+      },
+      backlog: result.map.capabilities.map(({ name }) => name),
+      laps: [],
+      explore: {
+        choiceSource: result.choiceSource,
+        modelCalls: result.modelCalls,
+        haltReason: result.map.frontier.haltReason,
+        capabilities: result.map.capabilities.length,
+        states: result.map.states.length,
+        productVariantsCollapsed: (productState?.visitedVariants ?? 0) >= 3,
+        denyListObserved,
+        rankingStable,
+      },
+    };
+  } finally {
+    store.close();
+  }
+}
+
+async function executeSessionCase(
   repositoryRoot: string,
   testCase: CaseFile,
   repeatIndex: number,
@@ -160,6 +291,19 @@ async function executeCase(
   }
 }
 
+async function executeCase(
+  repositoryRoot: string,
+  testCase: CaseFile,
+  repeatIndex: number,
+): Promise<Verdict> {
+  return withEnv(testCase.given.env, async () => {
+    if (testCase.mode === "explore") {
+      return executeExploreCase(repositoryRoot, testCase, repeatIndex);
+    }
+    return executeSessionCase(repositoryRoot, testCase, repeatIndex);
+  });
+}
+
 function isTerminal(status: SessionStatus): boolean {
   return (
     status === "COMPLETED" ||
@@ -178,6 +322,25 @@ export function matchedExpectedSession(
     actual.exitCode === expected.exitCode &&
     actual.defectsFound === expected.defectsFound
   );
+}
+
+export function matchedExploreExpect(
+  actual: Verdict["explore"] | undefined,
+  expected: CaseFile["expect"]["explore"],
+): boolean {
+  if (expected === undefined) return true;
+  if (actual === undefined) return false;
+  if (actual.choiceSource !== expected.choiceSource) return false;
+  if (actual.modelCalls !== expected.modelCalls) return false;
+  if (actual.haltReason !== expected.haltReason) return false;
+  if (expected.minCapabilities !== undefined && actual.capabilities < expected.minCapabilities) {
+    return false;
+  }
+  if (expected.minStates !== undefined && actual.states < expected.minStates) return false;
+  if (expected.productVariantsCollapsed === true && !actual.productVariantsCollapsed) return false;
+  if (expected.denyListObserved === true && !actual.denyListObserved) return false;
+  if (!actual.rankingStable) return false;
+  return true;
 }
 
 export function evalExitCode(results: readonly CaseResult[]): 0 | 3 {
@@ -207,7 +370,8 @@ export async function runCases(
         matched:
           deterministic &&
           verdict !== null &&
-          matchedExpectedSession(verdict.session, testCase.expect.session),
+          matchedExpectedSession(verdict.session, testCase.expect.session) &&
+          matchedExploreExpect(verdict.explore, testCase.expect.explore),
         verdict,
       });
     } catch (error) {

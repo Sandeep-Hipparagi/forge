@@ -374,6 +374,8 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
   app.get<{ Params: { id: string } }>("/api/sessions/:id/map", async (request, reply) => {
     const session = options.store.getSession(request.params.id);
     if (session === null) return notFound(reply, "Session");
+    const map = options.store.getCapabilityMap(session.id);
+    if (map !== null) return map;
     return {
       sessionId: session.id,
       authenticated: session.authenticated,

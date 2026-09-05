@@ -13,7 +13,8 @@
   "dependencies": {
     "@forge/core": "workspace:*",
     "@forge/evals": "workspace:*",
-    "@forge/orchestrator": "workspace:*"
+    "@forge/orchestrator": "workspace:*",
+    "@forge/store": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2"
