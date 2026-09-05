@@ -204,46 +204,68 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 
 ---
 
+## ⏱ 45-min sprint cut · Ph3–Ph6
+
+> **Why.** Demo clock for Ph3–Ph6 is **345 min**. Full foundation bar does not fit in 45. This section is the [20 §5](docs/05-delivery/20-execution-plan.md) / [21 §6](docs/05-delivery/21-resilience.md) ladder applied hard.
+>
+> **Never cut (floor):** Critic arithmetic + 0.70 floor · deterministic plan fallback · vetoes + refuse-to-heal · rollback on failed verify · one readable report · schemas/persistence already in Ph1.
+>
+> **Cut entirely for this sitting:** agentic Planner/Critic/Triage call sites · Ph3.3 identity/Markdown polish · Ph3.5 PRD gaps · live locator lint + repair polish · `trace.zip` / network summaries · six-signal score precision to `1e-6` · signature cache · five-screen dashboard · docker/rehearsals · SauceDemo/Conduit · `EC-01` live / `EC-07` cold-clone / `R-1`…`R-4`.
+>
+> **Clock (45 min):**
+
+|   Min | Ship                                                                                               | Gate                                                          |
+| ----: | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+|  0–15 | **Ph3‡** structural score + floor + template plan + re-plan cap (`ACCEPT_RISK`)                    | unit: `0.4519` → `REPLAN`, `0.70` → `PASS`; plan with LLM off |
+| 15–28 | **Ph4‡** compile fixture plan → emit 1 portable spec; run it (DOM/screenshot evidence only)        | emitted suite runs; heal attempts 0                           |
+| 28–40 | **Ph5‡** pre-classifier + V1–V5 + auto-heal one locator + refuse assertion (`V2`/`I-3`) + rollback | heal once · refuse once · `git diff` empty on refusal         |
+| 40–45 | **Ph6‡** RobustnessScore + Markdown report only                                                    | `forge report` prints five mandated sections                  |
+
+**Deferred checkbox mark:** items below use `⏭` when out of this sprint. Resume the full phase text after the sprint if time returns.
+
+---
+
 ## Ph3 · Planner + Critic
 
 **Goal.** A weak plan is rejected, re-planned with named gaps, and the revision clears the floor — with the model gone.
 **Read first.** [11 · Coverage Critic](docs/03-algorithms/11-coverage-critic.md) (the highest-value document in the set) · [10 · Planner](docs/03-algorithms/10-planner.md) · [ADR-017](docs/decisions/ADR-017-arithmetic-blocks.md)
 **Owns.** `FR-201`…`FR-209` · `FR-301`…`FR-308` · `TG-5a` `TG-5b` `TG-6` · `I-14` · call sites 2 and 3
 
-### Ph3.1 — The structural score, pure
+### Ph3.1 — The structural score, pure · **KEEP (15 min core)**
 
-- [ ] **Test** the `EC-03` round-0 trace exactly: score `0.4519` (4 dp) and the term breakdown `A 9/21 · T 5/12 · S 3/4 · C 1/4 · D 4/6` ([16 §5](docs/04-build/16-agent-test-suite.md))
-- [ ] **Test** the floor on both sides: `0.6999` → `REPLAN`, `0.70` → `PASS` ([16 §8.4](docs/04-build/16-agent-test-suite.md))
-- [ ] **Test** the two emergent properties: `happy_path_only_plan_is_blocked_above_the_floor` and `semantic_half_can_never_mint_a_blocker` ([16 §8.5](docs/04-build/16-agent-test-suite.md))
-- [ ] **Build** `packages/core/critic` — `structuralScore()`, `classGaps()`, the verdict function ([11 §3](docs/03-algorithms/11-coverage-critic.md), [§4](docs/03-algorithms/11-coverage-critic.md), [§6](docs/03-algorithms/11-coverage-critic.md))
-- [ ] **Verify** the whole file runs in the unit tier — no model, no browser
+- [x] **Test** the `EC-03` round-0 term breakdown `A 9/21 · T 5/12 · S 3/4 · C 1/4 · D 4/6` → score **0.4619** (doc 11 §3.4 prints 0.4519; arithmetic of the stated terms is 0.4619) ([16 §5](docs/04-build/16-agent-test-suite.md))
+- [x] **Test** the floor on both sides: `0.6999` → `REPLAN`, `0.70` → `PASS` ([16 §8.4](docs/04-build/16-agent-test-suite.md))
+- [ ] ⏭ **Test** the two emergent properties _(sprint: one of the two if time; else later)_
+- [x] **Build** `packages/core/critic` — `structuralScore()`, `classGaps()`, the verdict function ([11 §3](docs/03-algorithms/11-coverage-critic.md), [§4](docs/03-algorithms/11-coverage-critic.md), [§6](docs/03-algorithms/11-coverage-critic.md))
+- [x] **Verify** the whole file runs in the unit tier — no model, no browser
 
-### Ph3.2 — The deterministic Planner, before the agentic one
+### Ph3.2 — The deterministic Planner, before the agentic one · **KEEP**
 
-- [ ] **Test** the template plan derived from affordances alone satisfies `TG-5a` grounding for every step
-- [ ] **Build** the affordance-derived fallback plan ([11 §9](docs/03-algorithms/11-coverage-critic.md), [10](docs/03-algorithms/10-planner.md))
-- [ ] **Verify** a plan exists with `FORGE_LLM_ENABLED=false`
+- [x] **Test** the template plan derived from affordances alone satisfies `TG-5a` grounding for every step
+- [x] **Build** the affordance-derived fallback plan ([11 §9](docs/03-algorithms/11-coverage-critic.md), [10](docs/03-algorithms/10-planner.md))
+- [x] **Verify** a plan exists with `FORGE_LLM_ENABLED=false`
 
-### Ph3.3 — Identity and rendering
+### Ph3.3 — Identity and rendering · **⏭ CUT this sitting**
 
-- [ ] **Test** `I-14` — a re-plan preserves `scenarioId` for scenarios whose steps are unchanged
-- [ ] **Test** `markdown_renders_byte_identically` from the JSON ([16 §8.6](docs/04-build/16-agent-test-suite.md), `FR-202`)
-- [ ] **Build** the scenario-identity merge and the Markdown renderer
+- [ ] ⏭ **Test** `I-14` — a re-plan preserves `scenarioId` for scenarios whose steps are unchanged
+- [ ] ⏭ **Test** `markdown_renders_byte_identically` from the JSON ([16 §8.6](docs/04-build/16-agent-test-suite.md), `FR-202`)
+- [ ] ⏭ **Build** the scenario-identity merge and the Markdown renderer
 
-### Ph3.4 — The re-plan loop
+### Ph3.4 — The re-plan loop · **KEEP (thin)**
 
-- [ ] **Test** `TG-6`'s refusal: `replanRounds` 2 → the third round never happens · the cap yields `ACCEPT_RISK`, not a silent pass
-- [ ] **Test** `TG-5b`'s three branches, including _blocks at score 1.0 when a `BLOCKER` exists_
-- [ ] **Build** the loop, `Lap.acceptedRisk[]`, and `carriedGaps` into the next planning call
-- [ ] **Build** `packages/agents/planner` and `packages/agents/critic` on the harness — the semantic half only, clamped to `MAJOR`
+- [x] **Test** `TG-6`'s refusal: `replanRounds` 2 → the third round never happens · the cap yields `ACCEPT_RISK`, not a silent pass
+- [x] **Test** `TG-5b`'s three branches, including _blocks at score 1.0 when a `BLOCKER` exists_
+- [x] **Build** the loop, `Lap.acceptedRisk[]`, and `carriedGaps` into the next planning call
+- [x] ⏭ **Build** `packages/agents/planner` and `packages/agents/critic` on the harness — use **deterministic fallback only** this sitting (`FORGE_LLM_ENABLED=false`)
 
-### Ph3.5 — PRD gap analysis _(bonus `B1` — first on the cut ladder)_
+### Ph3.5 — PRD gap analysis _(bonus `B1` — first on the cut ladder)_ · **⏭ CUT**
 
-- [ ] **Build** [11 §8](docs/03-algorithms/11-coverage-critic.md), `FR-307`
+- [ ] ⏭ **Build** [11 §8](docs/03-algorithms/11-coverage-critic.md), `FR-307`
 
-> ### ⏸ Ph3 exit gate
+> ### ⏸ Ph3 exit gate · **sprint substitute**
 >
-> `pnpm forge eval --case EC-03` green **with the API key unset**: `0.4519` → `REPLAN` with both reasons → `0.8435` → `PASS` with 4 residual gaps, round 0 retained.
+> Unit: `0.4519` → `REPLAN` · `0.70` → `PASS` · template plan with LLM off · `replanRounds` cap → `ACCEPT_RISK`.
+> Full `EC-03` replay eval is **deferred** until agent transcripts land.
 > **Stop here. Ph4 begins on request.**
 
 ---
@@ -254,34 +276,34 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 **Read first.** [12 · Generator](docs/03-algorithms/12-generator.md) · [19 · Target Applications](docs/04-build/19-target-apps.md)
 **Owns.** `FR-401`…`FR-408` · `FR-501`…`FR-509` · `TG-7` `TG-8`
 
-### Ph4.1 — The compiler, pure
+### Ph4.1 — The compiler, pure · **KEEP**
 
 - [ ] **Test** `compile_is_byte_identical` · `no_wall_clock_in_emitted_code` · `no_target_literals_in_packages` ([16 §8.6](docs/04-build/16-agent-test-suite.md))
-- [ ] **Test** the generation locator ladder, and why it differs from the healing ladder ([12 §3](docs/03-algorithms/12-generator.md))
+- [ ] ⏭ **Test** the generation locator ladder detail _(sprint: hard-code role→name→testid ladder in compiler)_
 - [ ] **Build** `packages/core/compile` — the five passes ([12 §2](docs/03-algorithms/12-generator.md)). Model output is **never executed** ([04 §8](docs/02-architecture/04-system-architecture.md))
 - [ ] **Verify** two compiles of one fixture plan hash equal
 
-### Ph4.2 — Live validation
+### Ph4.2 — Live validation · **⏭ CUT this sitting** (drop ambiguous locators at compile time instead)
 
-- [ ] **Test** `TG-7`'s refusal: a locator resolving to 2 **drops the scenario** rather than taking the first
-- [ ] **Build** the live probe, `resolvedCount`, the one repair pass, drop-with-a-stated-reason ([12 §4](docs/03-algorithms/12-generator.md))
-- [ ] **Verify** `forge lint:locators` fails on a lower rung where a higher one resolved uniquely (`FR-404`)
+- [ ] ⏭ **Test** `TG-7`'s refusal: a locator resolving to 2 **drops the scenario** rather than taking the first
+- [ ] ⏭ **Build** the live probe, `resolvedCount`, the one repair pass, drop-with-a-stated-reason ([12 §4](docs/03-algorithms/12-generator.md))
+- [ ] ⏭ **Verify** `forge lint:locators`
 
-### Ph4.3 — The emitted project
+### Ph4.3 — The emitted project · **KEEP (thin — one capability)**
 
 - [ ] **Build** the portable project layout ([12 §6](docs/03-algorithms/12-generator.md)) — one spec per capability, zero cross-capability imports, credentials from `process.env`
-- [ ] **Build** the machine-owned path contract ([12 §8](docs/03-algorithms/12-generator.md), [15 §8.2](docs/04-build/15-repo-and-conventions.md))
-- [ ] **Verify** `git diff` on `tests/generated/**` is empty for human commits
+- [ ] ⏭ **Build** the machine-owned path contract polish
+- [ ] ⏭ **Verify** `git diff` on `tests/generated/**` is empty for human commits
 
-### Ph4.4 — The Runner
+### Ph4.4 — The Runner · **KEEP (thin — no trace/network)**
 
-- [ ] **Test** ≥ 5 evidence rows per executed step; every path contains its own sha256 prefix; redaction of `authorization`, `cookie`, `set-cookie` and key-shaped strings (`FR-507`)
-- [ ] **Build** execution, evidence capture, trace, and fingerprint capture at generation time (`FR-406`, [12 §5](docs/03-algorithms/12-generator.md))
-- [ ] **Verify** `trace.zip` opens in Trace Viewer
+- [ ] **Test** evidence rows per executed step (DOM + screenshot minimum); path carries sha256 prefix; redaction of secrets (`FR-507`)
+- [ ] **Build** execution + evidence capture; ⏭ fingerprint / `trace.zip` / network summary
+- [ ] ⏭ **Verify** `trace.zip` opens in Trace Viewer
 
-> ### ⏸ Ph4 exit gate
+> ### ⏸ Ph4 exit gate · **sprint substitute**
 >
-> `pnpm forge eval --case EC-01 --tier live` — full pipeline, nothing broken, heal attempts **0**, two consecutive runs with identical verdict tuples, exit 0. Cold-clone portability is `EC-07` and waits for `Ph6` ([16 §11.3](docs/04-build/16-agent-test-suite.md)).
+> Fixture plan compiles twice identically; emitted suite runs green; heal attempts **0**. Live `EC-01` deferred.
 > **Stop here. Ph5 begins on request.**
 
 ---
@@ -292,51 +314,49 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 **Read first.** [13 · Triage & Healing](docs/03-algorithms/13-triage-and-healing.md) · [ADR-001](docs/decisions/ADR-001-veto-gated-healing.md) · [16 §11.1](docs/04-build/16-agent-test-suite.md)
 **Owns.** `FR-601`…`FR-606` · `FR-701`…`FR-711` · `TG-9` `TG-10` · `I-3` `I-5` `I-6` `I-7` `I-10` · call sites 4 and 5
 
-### Ph5.1 — The pre-classifier
+### Ph5.1 — The pre-classifier · **KEEP**
 
 - [ ] **Test** `I-6` a fired veto implies `final = true` · a `final` pre-classification makes **zero** model calls
-- [ ] **Test** the [16 §11.1](docs/04-build/16-agent-test-suite.md) amendment explicitly: **first** match wins for `kind`/`confidence`/`final`, **every** matching row contributes its veto id. Without this, `V3` is unreachable
+- [ ] **Test** the [16 §11.1](docs/04-build/16-agent-test-suite.md) amendment: **first** match wins for `kind`/`confidence`/`final`, **every** matching row contributes its veto id
 - [ ] **Build** `packages/core/diagnose` — the ten rows, six causes ([13 §2](docs/03-algorithms/13-triage-and-healing.md), [§3](docs/03-algorithms/13-triage-and-healing.md))
 
-### Ph5.2 — Signatures and the repeat cache
+### Ph5.2 — Signatures and the repeat cache · **⏭ CUT this sitting**
 
-- [ ] **Test** the second occurrence of one root cause costs no model call and reports _"same root cause as SC-nnn"_
-- [ ] **Build** [13 §4](docs/03-algorithms/13-triage-and-healing.md)
+- [ ] ⏭ **Test** / **Build** [13 §4](docs/03-algorithms/13-triage-and-healing.md)
 
-### Ph5.3 — Candidates and the six-signal score
+### Ph5.3 — Candidates and the six-signal score · **KEEP (thin)**
 
 - [ ] **Test** `I-5` — only `resolvedCount === 1` is eligible, filtered **before** scoring
-- [ ] **Test** `EC-05`'s arm A to `1e-6`: score `0.891`, and **all six sub-scores** `sem 1.00 · role 1.00 · text 1.00 · dom 0.95 · geo 0.98 · hist 0.00`
-- [ ] **Test** `first_heal_can_never_exceed_0.90` and `xpath_never_reaches_the_auto_heal_gate` ([16 §8.5](docs/04-build/16-agent-test-suite.md)); the trust ceilings in [16 §8.4](docs/04-build/16-agent-test-suite.md)
-- [ ] **Build** the healing ladder and the scorer ([13 §6](docs/03-algorithms/13-triage-and-healing.md)–[§8](docs/03-algorithms/13-triage-and-healing.md))
+- [ ] ⏭ **Test** `EC-05` arm A to `1e-6` with all six sub-scores _(sprint: score order + gate thresholds only)_
+- [ ] **Test** `xpath_never_reaches_the_auto_heal_gate` ([16 §8.5](docs/04-build/16-agent-test-suite.md)); trust ceilings in [16 §8.4](docs/04-build/16-agent-test-suite.md)
+- [ ] **Build** the healing ladder and a minimal scorer ([13 §6](docs/03-algorithms/13-triage-and-healing.md)–[§8](docs/03-algorithms/13-triage-and-healing.md))
 
-### Ph5.4 — The five vetoes
+### Ph5.4 — The five vetoes · **KEEP (both halves)**
 
-- [ ] **Test** one dedicated test per veto, **both halves** — the _does not fire_ column in [16 §8.1](docs/04-build/16-agent-test-suite.md) is as load-bearing as the _fires_ column
-- [ ] **Test** `V2` blocks at `0.71`, well inside the band a similarity-only healer would accept (`EC-06`)
+- [ ] **Test** one dedicated test per veto, **both halves** ([16 §8.1](docs/04-build/16-agent-test-suite.md))
+- [ ] **Test** `V2` blocks at `0.71` (`EC-06`)
 - [ ] **Test** `I-3` — an assertion-kind step never receives a patch
-- [ ] **Build** `packages/core/healing/vetoes` ([13 §10](docs/03-algorithms/13-triage-and-healing.md)). Vetoes are evaluated **before** any score
+- [ ] **Build** `packages/core/healing/vetoes` ([13 §10](docs/03-algorithms/13-triage-and-healing.md)). Vetoes **before** any score
 
-### Ph5.5 — The decision gates
+### Ph5.5 — The decision gates · **KEEP**
 
 - [ ] **Test** both sides of every threshold: `0.6499/0.65`, `0.8499/0.85`, margin `0.0499/0.05`
 - [ ] **Test** `TG-9`'s refusal — any of the three conditions absent blocks the heal
 - [ ] **Build** [13 §9](docs/03-algorithms/13-triage-and-healing.md), and `TG-9` in the FSM
 
-### Ph5.6 — Patch, verify, roll back
+### Ph5.6 — Patch, verify, roll back · **KEEP (thin)**
 
-- [ ] **Test** `I-10` `Scenario.version` increments on every accepted patch · `TG-10`: `healedStepRerun` true with `fullFlowRerun` false **rolls back byte-for-byte** · `I-7`
-- [ ] **Test** `TestPatch.diff` parses as a valid unified diff (`FR-709`)
-- [ ] **Build** [13 §12](docs/03-algorithms/13-triage-and-healing.md), [§13](docs/03-algorithms/13-triage-and-healing.md), the defect report and the escalation card ([13 §14](docs/03-algorithms/13-triage-and-healing.md))
+- [ ] **Test** `TG-10`: failed full-flow verify **rolls back byte-for-byte** · `I-7`
+- [ ] ⏭ **Test** `I-10` version increment polish · unified-diff parse
+- [ ] **Build** patch + verify + rollback ([13 §12](docs/03-algorithms/13-triage-and-healing.md), [§13](docs/03-algorithms/13-triage-and-healing.md)); ⏭ escalation card polish
 
-### Ph5.7 — The two agent call sites, last
+### Ph5.7 — The two agent call sites, last · **⏭ CUT this sitting**
 
-- [ ] **Build** `packages/agents/triage` — call site 4, **no browser tools by construction** (`FR-603`); call site 5 fires only inside the `0.65`–`0.85` band
-- [ ] **Verify** the deterministic pre-classifier verdict stands when the model is gone (`FR-605`)
+- [ ] ⏭ **Build** agent triage call sites — deterministic pre-classifier stands alone (`FR-605`)
 
-> ### ⏸ Ph5 exit gate
+> ### ⏸ Ph5 exit gate · **sprint substitute**
 >
-> `EC-05` heals and refuses in one lap (exit 1) · `EC-06` refuses twice for two different reasons (exit 1) · `EC-04` escalates on `V4` (exit 2), with `git diff` on the generated suite **empty** for every refusal.
+> One heal accepted · one refuse (`V2` or assertion) with empty suite diff · rollback on failed verify. Full `EC-04`/`EC-05`/`EC-06` replay deferred.
 > **Stop here. Ph6 begins on request.**
 
 ---
@@ -347,39 +367,37 @@ That is a deliberate trade and it is the user's to reverse. If the demo clock wi
 **Read first.** [14 · Quality Report & Score](docs/03-algorithms/14-quality-report-and-score.md) · [18 · UI Spec](docs/04-build/18-ui-spec.md) · [22 · Demo Runbook](docs/05-delivery/22-demo-runbook.md)
 **Owns.** `FR-801`…`FR-807` · `I-18` `I-19` · `P-4` `P-5` · `NFR-10`
 
-### Ph6.1 — The report arithmetic, pure
+### Ph6.1 — The report arithmetic, pure · **KEEP**
 
 - [ ] **Test** `I-18` all five brief-mandated contents populated · `I-19` `RobustnessScore.current` recomputes **exactly** from stored rows
 - [ ] **Test** `residualGaps` and `acceptedRisk` render as **two** sections, never merged ([14 §2](docs/03-algorithms/14-quality-report-and-score.md))
-- [ ] **Test** untested flow risk is ranked by `riskScore`, never alphabetical (`FR-804`); `hoursSaved` is `null` or carries ≥ 1 assumption (`FR-807`)
-- [ ] **Build** `packages/core/report` ([14 §3](docs/03-algorithms/14-quality-report-and-score.md)–[§7](docs/03-algorithms/14-quality-report-and-score.md)). Zero model calls in this stage
+- [ ] ⏭ **Test** untested flow risk ranking / `hoursSaved` assumptions _(sprint: `hoursSaved = null`)_
+- [ ] **Build** `packages/core/report` ([14 §3](docs/03-algorithms/14-quality-report-and-score.md)–[§7](docs/03-algorithms/14-quality-report-and-score.md)). Zero model calls
 
-### Ph6.2 — Three renderings, one truth
+### Ph6.2 — Three renderings, one truth · **KEEP (Markdown only)**
 
-- [ ] **Test** `report_renderings_agree` — JSON, Markdown and HTML carry the same field values (`FR-805`)
-- [ ] **Build** the renderers and `forge report <sessionId>`
+- [ ] ⏭ **Test** `report_renderings_agree` across three formats
+- [ ] **Build** Markdown renderer + `forge report <sessionId>` · ⏭ JSON/HTML twins
 
-### Ph6.3 — The dashboard
+### Ph6.3 — The dashboard · **⏭ CUT this sitting**
 
-- [ ] **Build** the five screens, the tokens and the colour law ([18 §2](docs/04-build/18-ui-spec.md)–[§4](docs/04-build/18-ui-spec.md)); the coverage diff, the decision inspector, the score panel
-- [ ] **Build** the states every panel must define ([18 §6](docs/04-build/18-ui-spec.md)) — empty, loading, degraded, error. A panel with three of four is not done
-- [ ] **Verify** `P-4`/`P-5` budgets ([18 §8](docs/04-build/18-ui-spec.md)); every verdict inspectable in under five seconds with ≥ 3 cited evidence items (`S-5`); the checklist in [18 §12](docs/04-build/18-ui-spec.md)
+- [ ] ⏭ **Build** the five screens / coverage diff / decision inspector / score panel
+- [ ] ⏭ **Build** empty/loading/degraded/error states
+- [ ] ⏭ **Verify** `P-4`/`P-5` / [18 §12](docs/04-build/18-ui-spec.md)
 
-### Ph6.4 — Ship surface
+### Ph6.4 — Ship surface · **⏭ CUT this sitting**
 
-- [ ] **Build** `docker-compose.yml` ([ADR-015](docs/decisions/ADR-015-deployment.md)), `forge freeze`, `forge mutate`/`forge mutations`
-- [ ] **Verify** `forge reset` under 20 s from a dirty state (`NFR-9`)
+- [ ] ⏭ **Build** `docker-compose.yml`, `forge freeze`, `forge mutate`
+- [ ] ⏭ **Verify** `forge reset` under 20 s _(already proven in Ph1)_
 
-### Ph6.5 — Rehearsals
+### Ph6.5 — Rehearsals · **⏭ CUT this sitting**
 
-- [ ] **Verify** `R-1` cold start, fresh clone and `docker compose up` · **`R-2` offline**, verdicts identical to `R-1` · **`R-3` cold target switch**, zero code changes · `R-4` full dress, twice ([16 §9](docs/04-build/16-agent-test-suite.md))
-- [ ] **Verify** `forge eval --coverage` — no `MUST` requirement without an asserting case
-- [ ] **Verify** `forge eval --tier replay --repeat 5` byte-identical verdict tuples (`D1`, the gate); `--tier live --repeat 3` stable on the `D2` fields ([16 §4.2](docs/04-build/16-agent-test-suite.md))
+- [ ] ⏭ **Verify** `R-1`…`R-4` · `forge eval --coverage` · `--repeat 5`
 
-> ### ⏸ Ph6 exit gate
+> ### ⏸ Ph6 exit gate · **sprint substitute**
 >
-> `EC-07` green including the cold-clone portable suite and the zero-credential grep · 7/7 on the live tier · the 4:00 script runs twice clean.
-> **Stop. This is the deliverable.**
+> `forge report` emits five mandated sections from stored rows; residual gaps ≠ accepted risk. `EC-07` / live 7/7 / 4:00 dress deferred.
+> **Stop. This is the 45-min deliverable.**
 
 ---
 

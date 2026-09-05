@@ -13,6 +13,14 @@
     "./schema": {
       "types": "./dist/schema/index.d.ts",
       "import": "./dist/schema/index.js"
+    },
+    "./critic": {
+      "types": "./dist/critic/index.d.ts",
+      "import": "./dist/critic/index.js"
+    },
+    "./plan": {
+      "types": "./dist/plan/index.d.ts",
+      "import": "./dist/plan/index.js"
     }
   },
   "scripts": {
