@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { EventEmitter } from "node:events";
-import type { Clock } from "@forge/core";
+import type { Clock, Session, SessionEvent } from "@forge/core";
+import { systemClock } from "@forge/core";
 
 export interface StoredEvent {
   id: number;
@@ -127,7 +128,7 @@ interface RobustnessScoreRow {
   computed_at: string;
 }
 
-type SessionInput = {
+type StoredSession = {
   status: string;
   input: unknown;
   config: unknown;
@@ -141,10 +142,12 @@ type SessionInput = {
 export class DurableEventStore {
   readonly #db: Database.Database;
   readonly #events = new EventEmitter();
+  /** Hot cache used by the orchestrator; SQLite remains the source of truth. */
+  readonly sessions = new Map<string, Session>();
 
   constructor(
     path = ":memory:",
-    private readonly clock: Clock,
+    private readonly clock: Clock = systemClock,
   ) {
     this.#db = new Database(path);
     this.#db.pragma("journal_mode = WAL");
@@ -219,7 +222,15 @@ export class DurableEventStore {
     `);
   }
 
-  createSession(id: string, session: SessionInput): void {
+  createSession(session: Session): void;
+  createSession(id: string, session: StoredSession): void;
+  createSession(
+    idOrSession: string | Session,
+    maybeSession?: StoredSession,
+  ): void {
+    const id = typeof idOrSession === "string" ? idOrSession : idOrSession.id;
+    const session =
+      typeof idOrSession === "string" ? maybeSession! : idOrSession;
     this.#db
       .prepare(
         "INSERT INTO sessions (id, status, input_json, config_json, config_sha256, created_at, finished_at, exit_code, defects_found) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -235,6 +246,7 @@ export class DurableEventStore {
         session.exitCode ?? null,
         session.defectsFound ?? 0,
       );
+    if (typeof idOrSession !== "string") this.sessions.set(id, idOrSession);
   }
 
   getSession<T>(id: string): T | undefined {
@@ -255,7 +267,15 @@ export class DurableEventStore {
     } as T;
   }
 
-  updateSession(id: string, session: SessionInput): void {
+  updateSession(session: Session): void;
+  updateSession(id: string, session: StoredSession): void;
+  updateSession(
+    idOrSession: string | Session,
+    maybeSession?: StoredSession,
+  ): void {
+    const id = typeof idOrSession === "string" ? idOrSession : idOrSession.id;
+    const session =
+      typeof idOrSession === "string" ? maybeSession! : idOrSession;
     this.#db
       .prepare(
         "UPDATE sessions SET status = ?, input_json = ?, config_json = ?, config_sha256 = ?, finished_at = ?, exit_code = ?, defects_found = ? WHERE id = ?",
@@ -270,6 +290,15 @@ export class DurableEventStore {
         session.defectsFound ?? 0,
         id,
       );
+    if (typeof idOrSession !== "string") this.sessions.set(id, idOrSession);
+  }
+
+  getSessionRecord(id: string): Session | undefined {
+    const cached = this.sessions.get(id);
+    if (cached) return cached;
+    const loaded = this.getSession<Session>(id);
+    if (loaded) this.sessions.set(id, loaded);
+    return loaded;
   }
 
   append(
@@ -277,10 +306,24 @@ export class DurableEventStore {
     type: string,
     payload: Record<string, unknown>,
     sha256: string,
+    event?: SessionEvent,
   ): StoredEvent {
     const createdAt = this.clock.now().toISOString();
     const serialized = JSON.stringify(payload);
     const result = this.#db.transaction(() => {
+      // Keep the low-level primitive usable in isolation while preserving the
+      // foreign-key invariant. The bootstrap row is part of this transaction
+      // so a failed event write rolls it back as well.
+      const exists = this.#db
+        .prepare("SELECT 1 FROM sessions WHERE id = ?")
+        .get(sessionId);
+      if (!exists) {
+        this.#db
+          .prepare(
+            "INSERT INTO sessions (id, status, input_json, config_json, config_sha256, created_at, finished_at, exit_code, defects_found) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, 0)",
+          )
+          .run(sessionId, "CREATED", "{}", "{}", "0".repeat(64), createdAt);
+      }
       const seqResult = this.#db
         .prepare(
           "SELECT COALESCE(MAX(seq), -1) + 1 as seq FROM session_events WHERE session_id = ?",
@@ -294,7 +337,7 @@ export class DurableEventStore {
         .run(
           sessionId,
           seq,
-          JSON.stringify({ type, payload, sha256, createdAt }),
+          JSON.stringify({ type, payload, sha256, createdAt, event }),
         );
       return {
         id: seq,
@@ -317,8 +360,44 @@ export class DurableEventStore {
       .all(sessionId, seq) as StoredEvent[];
   }
 
-  getEvents(sessionId: string, since = -1): StoredEvent[] {
-    return this.after(sessionId, since);
+  getEvents(sessionId: string, since = -1): SessionEvent[] {
+    return this.after(sessionId, since).map((stored) => {
+      const row = this.#db
+        .prepare(
+          "SELECT event_json FROM session_events WHERE session_id = ? AND seq = ?",
+        )
+        .get(sessionId, stored.id) as { event_json: string } | undefined;
+      const parsed = row
+        ? (JSON.parse(row.event_json) as { event?: SessionEvent })
+        : undefined;
+      if (parsed?.event) return parsed.event;
+      return {
+        id: `ev_${String(stored.id).padStart(8, "0")}`,
+        eventVersion: 1,
+        seq: stored.id,
+        sessionId,
+        lapId: null,
+        at: stored.createdAt,
+        actor: "orchestrator",
+        type: stored.type as SessionEvent["type"],
+        payload: JSON.parse(stored.payload) as Record<string, unknown>,
+        evidenceIds: [],
+        traceId: `tr_${sessionId}`,
+        spanId: `sp_${stored.id}`,
+        configSha256: stored.sha256,
+      };
+    });
+  }
+
+  appendEvent(event: Omit<SessionEvent, "seq">): SessionEvent {
+    const stored = this.append(
+      event.sessionId,
+      event.type,
+      event.payload,
+      event.configSha256,
+      event as SessionEvent,
+    );
+    return { ...event, seq: stored.id };
   }
 
   subscribe(

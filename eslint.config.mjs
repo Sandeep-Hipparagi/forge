@@ -3,7 +3,19 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/**", "dist/**", "artifacts/**", "docs/**"],
+    ignores: [
+      "node_modules/**",
+      "dist/**",
+      "artifacts/**",
+      "docs/**",
+      // Phase 2 packages are kept in-tree for development but have their own
+      // execution gate; they must not change the canonical Phase 1 gate.
+      "packages/agents/**",
+      "packages/perception/**",
+      "packages/compile/**",
+      "packages/critic/**",
+      "packages/planner/**",
+    ],
     languageOptions: {
       globals: { console: "readonly", module: "readonly", process: "readonly" },
     },

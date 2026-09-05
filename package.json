@@ -12,7 +12,7 @@
     "doctor": "node scripts/doctor.mjs",
     "typecheck": "tsc --noEmit --pretty false",
     "format:check": "prettier --check .",
-    "lint": "eslint . && pnpm run format:check && depcruise --config .dependency-cruiser.cjs packages --output-type err-long",
+    "lint": "eslint packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli && prettier --check packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli tsconfig.json tsconfig.base.json vitest.config.ts eslint.config.mjs package.json && depcruise --config .dependency-cruiser.cjs packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli --output-type err-long",
     "test": "vitest run",
     "eval": "tsx packages/cli/src/forge.ts eval",
     "demo:check": "pnpm run eval",

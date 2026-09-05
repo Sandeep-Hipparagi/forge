@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import { defaultSessionConfig, SessionInput, type Session } from "@forge/core";
 import { runStubSession, type SessionStore } from "@forge/orchestrator";
-import { MemoryStore, sha256 } from "@forge/store";
+import { DurableEventStore, MemoryStore, sha256 } from "@forge/store";
 
 const sendJson = (
   response: import("node:http").ServerResponse,
@@ -25,6 +25,91 @@ interface ReportRecord {
   [key: string]: unknown;
 }
 
+class DurableSessionStoreAdapter implements SessionStore {
+  readonly sessions: Map<string, Session>;
+
+  constructor(private readonly durable: DurableEventStore) {
+    this.sessions = durable.sessions;
+  }
+
+  createSession(session: Session): void {
+    this.durable.createSession(session);
+  }
+
+  updateSession(session: Session): void {
+    this.durable.updateSession(session);
+  }
+
+  getSession(sessionId: string): Session | undefined {
+    return this.durable.getSessionRecord(sessionId);
+  }
+
+  getEvents(sessionId: string, since = -1) {
+    return this.durable.getEvents(sessionId, since);
+  }
+
+  appendEvent(event: Omit<import("@forge/core").SessionEvent, "seq">) {
+    return this.durable.appendEvent(event);
+  }
+
+  subscribe(
+    sessionId: string,
+    listener: (event: import("@forge/core").SessionEvent) => void,
+  ): () => void {
+    return this.durable.subscribe(sessionId, (stored) => {
+      const event = this.durable
+        .getEvents(sessionId, stored.id - 1)
+        .find((candidate) => candidate.seq === stored.id);
+      if (event) listener(event);
+    });
+  }
+
+  getEvidence(sessionId: string): unknown[] {
+    return this.durable.getEvidence(sessionId).map((row) => ({
+      ...row,
+      sessionId: row.session_id,
+    }));
+  }
+
+  createLap(lap: LapRecord): void {
+    this.durable.createLap({
+      id: lap.id,
+      session_id: lap.sessionId,
+      replan_rounds:
+        typeof lap.replanRounds === "number" ? lap.replanRounds : 0,
+    });
+  }
+
+  getLapsBySession(sessionId: string): LapRecord[] {
+    return this.durable.getLapsBySession(sessionId).map((row) => ({
+      ...row,
+      sessionId: row.session_id,
+    }));
+  }
+
+  getLap(id: string): LapRecord | undefined {
+    const row = this.durable.getLap(id);
+    return row ? { ...row, sessionId: row.session_id } : undefined;
+  }
+
+  createReport(report: ReportRecord): void {
+    this.durable.createReport({
+      id: report.id,
+      session_id: report.sessionId,
+      markdown_path: String(report.markdownPath ?? ""),
+      json_path: typeof report.jsonPath === "string" ? report.jsonPath : null,
+      generated_at: String(report.generatedAt ?? "1970-01-01T00:00:00.000Z"),
+      defects_found:
+        typeof report.defectsFound === "number" ? report.defectsFound : 0,
+    });
+  }
+
+  getReportBySession(sessionId: string): ReportRecord | undefined {
+    const row = this.durable.getReportBySession(sessionId);
+    return row ? { ...row, sessionId: row.session_id } : undefined;
+  }
+}
+
 function hasGetLapsBySession(store: SessionStore): store is SessionStore & {
   getLapsBySession(sessionId: string): LapRecord[];
 } {
@@ -44,7 +129,7 @@ function hasGetEvidence(
 }
 
 export const createApiServer = (
-  store: SessionStore = new MemoryStore(),
+  store: SessionStore = createDefaultStore(),
 ): { server: Server; store: SessionStore } => {
   let counter = 0;
   const server = createServer(async (request, response) => {
@@ -111,7 +196,8 @@ export const createApiServer = (
       const sessionId = sessionMatch[1];
       if (!sessionId)
         return sendJson(response, 404, { error: { code: "NOT_FOUND" } });
-      const session = store.sessions.get(sessionId);
+      const session =
+        store.sessions.get(sessionId) ?? store.getSession?.(sessionId);
       if (!session)
         return sendJson(response, 404, { error: { code: "NOT_FOUND" } });
       const subPath = sessionMatch[2];
@@ -129,7 +215,14 @@ export const createApiServer = (
           response.write(
             `id: ${event.seq ?? event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
           );
-        return response.end();
+        if (!store.subscribe) return response.end();
+        const unsubscribe = store.subscribe(session.id, (event) => {
+          response.write(
+            `id: ${event.seq ?? event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
+          );
+        });
+        request.on("close", unsubscribe);
+        return;
       }
       if (subPath === "laps") {
         if (!hasGetLapsBySession(store))
@@ -165,3 +258,15 @@ export const createApiServer = (
   });
   return { server, store };
 };
+
+function createDefaultStore(): SessionStore {
+  try {
+    return new DurableSessionStoreAdapter(new DurableEventStore());
+  } catch (error) {
+    // Vitest on unsupported local Node versions may not have a loadable native
+    // better-sqlite3 binding. Production startup remains fail-fast; only tests
+    // receive the deterministic in-memory fallback.
+    if (process.env.NODE_ENV === "test") return new MemoryStore();
+    throw error;
+  }
+}

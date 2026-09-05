@@ -1,11 +1,14 @@
 import { once } from "node:events";
 import { createApiServer } from "@forge/api";
+import { MemoryStore } from "@forge/store";
 
 export const runReplayCase = async (): Promise<{
   status: string;
   eventSeq: number[];
 }> => {
-  const { server } = createApiServer();
+  // Replay is intentionally hermetic: it must not depend on a native SQLite
+  // binding or external services. Production API boot uses DurableEventStore.
+  const { server } = createApiServer(new MemoryStore());
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address();

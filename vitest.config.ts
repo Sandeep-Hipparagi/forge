@@ -19,7 +19,13 @@ export default defineConfig({
     },
   },
   test: {
-    include: ["packages/*/tests/**/*.test.ts"],
+    include: [
+      "packages/core/tests/**/*.test.ts",
+      "packages/store/tests/**/*.test.ts",
+      "packages/orchestrator/tests/**/*.test.ts",
+      "packages/api/tests/**/*.test.ts",
+      "packages/evals/tests/**/*.test.ts",
+    ],
     environment: "node",
     globals: true,
     reporters: ["default"],

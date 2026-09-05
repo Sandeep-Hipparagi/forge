@@ -19,6 +19,7 @@ export class MemoryStore {
   readonly evidence = new Map<string, Evidence>();
   readonly laps = new Map<string, LapRecord>();
   readonly reports = new Map<string, ReportRecord>();
+  readonly #listeners = new Map<string, Set<(event: SessionEvent) => void>>();
 
   createSession(session: Session): void {
     if (this.sessions.has(session.id))
@@ -32,12 +33,31 @@ export class MemoryStore {
     this.sessions.set(session.id, session);
   }
 
+  getSession(sessionId: string): Session | undefined {
+    return this.sessions.get(sessionId);
+  }
+
   appendEvent(event: Omit<SessionEvent, "seq">): SessionEvent {
     const events = this.events.get(event.sessionId);
     if (!events) throw new Error("unknown session");
     const stored = { ...event, seq: events.length };
     events.push(stored);
+    for (const listener of this.#listeners.get(event.sessionId) ?? [])
+      listener(stored);
     return stored;
+  }
+
+  subscribe(
+    sessionId: string,
+    listener: (event: SessionEvent) => void,
+  ): () => void {
+    const listeners = this.#listeners.get(sessionId) ?? new Set();
+    listeners.add(listener);
+    this.#listeners.set(sessionId, listeners);
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) this.#listeners.delete(sessionId);
+    };
   }
 
   getEvents(sessionId: string, since = -1): SessionEvent[] {
