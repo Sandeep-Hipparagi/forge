@@ -31,9 +31,15 @@ export default tseslint.config(
       "no-restricted-imports": [
         "error",
         {
-          patterns: [
+          paths: [
             {
-              group: ["node:crypto", "crypto"],
+              name: "node:crypto",
+              importNames: ["randomUUID"],
+              message: "Take IdGen from RunContext — docs/04-build/15 §4.4.",
+            },
+            {
+              name: "crypto",
+              importNames: ["randomUUID"],
               message: "Take IdGen from RunContext — docs/04-build/15 §4.4.",
             },
           ],
