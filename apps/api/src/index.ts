@@ -25,6 +25,7 @@ if (isMain) {
       .filter(Boolean),
     webOrigin: `http://localhost:${process.env.FORGE_WEB_PORT ?? "3000"}`,
     repositoryRoot,
+    liveSessions: (process.env.FORGE_LIVE_SESSIONS ?? "false").toLowerCase() === "true",
   });
   const port = Number.parseInt(process.env.FORGE_API_PORT ?? "4000", 10);
   const host = process.env.FORGE_API_BIND ?? "127.0.0.1";

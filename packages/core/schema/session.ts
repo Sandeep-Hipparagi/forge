@@ -21,6 +21,8 @@ export const SessionInput = z.object({
   intent: z.string().max(2_000).optional(),
   mode: SessionMode.default("autopilot"),
   budget: SessionBudget.default({}),
+  /** Opt-in: open a real browser and run explore → plan → run → report. Requires FORGE_LIVE_SESSIONS=true. */
+  live: z.boolean().optional(),
 });
 
 export const StoredSessionInput = SessionInput.omit({ password: true });

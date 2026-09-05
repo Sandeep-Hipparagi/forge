@@ -65,6 +65,22 @@ async function loadReport(sessionId: string): Promise<ReportJson | null> {
   }
 }
 
+async function loadSessionMeta(sessionId: string): Promise<{ live: boolean; url: string } | null> {
+  try {
+    const response = await fetch(`${API}/api/sessions/${sessionId}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    const body = (await response.json()) as {
+      input?: { live?: boolean; url?: string };
+    };
+    return {
+      live: body.input?.live === true,
+      url: body.input?.url ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 function pillClass(decision: string): string {
   if (decision === "HEALED") return "pill pill-healed";
   if (decision === "BLOCKED") return "pill pill-blocked";
@@ -73,7 +89,7 @@ function pillClass(decision: string): string {
 
 export default async function ReportPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
-  const report = await loadReport(sessionId);
+  const [report, meta] = await Promise.all([loadReport(sessionId), loadSessionMeta(sessionId)]);
 
   if (report === null) {
     return (
@@ -93,6 +109,30 @@ export default async function ReportPage({ params }: { params: Promise<{ session
   const residual = report.residualGaps ?? [];
   const accepted = report.acceptedRisk ?? [];
   const maxComponent = Math.max(...Object.values(report.score.components), 1);
+  const isDemo = sessionId === "ses_demo";
+  const isLive = meta?.live === true;
+
+  const healerSummary = (() => {
+    if (report.healerActions.length === 0) {
+      return "No self-healing actions were taken in this session.";
+    }
+    let healed = 0;
+    let blocked = 0;
+    let escalated = 0;
+    const vetoIds = new Set<string>();
+    for (const action of report.healerActions) {
+      if (action.decision === "HEALED") healed += 1;
+      else if (action.decision === "BLOCKED") blocked += 1;
+      else if (action.decision === "ESCALATED") escalated += 1;
+      if (action.vetoId) vetoIds.add(action.vetoId);
+    }
+    const vetoList = Array.from(vetoIds).sort();
+    const parts = [`${healed} healed`, `${blocked} blocked`, `${escalated} escalated`];
+    if (vetoList.length > 0) {
+      parts.push(`vetoes: ${vetoList.join(", ")}`);
+    }
+    return parts.join(" · ");
+  })();
 
   return (
     <main className="shell">
@@ -107,6 +147,20 @@ export default async function ReportPage({ params }: { params: Promise<{ session
         Same document as <code className="mono">forge report</code> — five mandated sections,
         residual gaps kept separate from accepted risk.
       </p>
+
+      {!isDemo && !isLive && (
+        <p className="mode-banner" role="status" data-testid="stub-banner">
+          Stub run{meta?.url ? ` for ${meta.url}` : ""}. No browser opened — this is not a live
+          explore of the target. Go back to Start, keep <strong>Live explore</strong> checked, and
+          run again.
+        </p>
+      )}
+      {isLive && (
+        <p className="mode-banner live" role="status" data-testid="live-banner">
+          Live run{meta?.url ? ` against ${meta.url}` : ""}. Score and sections come from this
+          session&apos;s explore → plan → run evidence.
+        </p>
+      )}
 
       <section className="panel" aria-labelledby="score-heading">
         <h2 id="score-heading">Robustness score</h2>
@@ -131,6 +185,42 @@ export default async function ReportPage({ params }: { params: Promise<{ session
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="panel" aria-labelledby="capabilities-heading">
+        <h2 id="capabilities-heading">Capability robustness</h2>
+        {report.score.perCapability.length === 0 ? (
+          <p className="empty">No capability-level breakdown is available for this report.</p>
+        ) : (
+          <table data-testid="capability-breakdown">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Points</th>
+                <th>Lost because</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.score.perCapability.map((cap) => (
+                <tr key={cap.capabilityId}>
+                  <td>{cap.name}</td>
+                  <td className="mono">{cap.points.toFixed(2)}</td>
+                  <td>
+                    {cap.lostBecause.length === 0 ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      <ul className="gap-list">
+                        {cap.lostBecause.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section className="panel" aria-labelledby="scenarios-heading">
@@ -193,6 +283,9 @@ export default async function ReportPage({ params }: { params: Promise<{ session
 
       <section className="panel" aria-labelledby="healer-heading">
         <h2 id="healer-heading">3. Self-healing actions taken</h2>
+        <p className="healer-summary" data-testid="healer-summary">
+          {healerSummary}
+        </p>
         {report.healerActions.length === 0 ? (
           <p className="empty">None.</p>
         ) : (
@@ -225,6 +318,41 @@ export default async function ReportPage({ params }: { params: Promise<{ session
             </tbody>
           </table>
         )}
+      </section>
+
+      <section className="panel" aria-labelledby="veto-heading">
+        <h2 id="veto-heading">Decision guardrails · vetoes V1–V5</h2>
+        <p className="lede-small">
+          Every auto-heal passes through five hard vetoes. When a veto id appears in the table
+          above, this is the rule that blocked it.
+        </p>
+        <ul className="gap-list">
+          <li>
+            <span className="severity">[V1]</span> Assertion-target veto — assertion step with{" "}
+            <code className="mono">ASSERTION_FAILED</code> is always treated as a product bug;
+            healing is forbidden.
+          </li>
+          <li>
+            <span className="severity">[V2]</span> Destructive-verb veto — blocks a candidate whose
+            accessible name changes a non-destructive control into a destructive one (for example,
+            <code className="mono">Place order</code> → <code className="mono">Delete order</code>
+            ).
+          </li>
+          <li>
+            <span className="severity">[V3]</span> Numeric / currency drift veto — blocks when{" "}
+            <code className="mono">expected</code> and <code className="mono">actual</code> differ
+            only in numbers or currency, so pricing bugs cannot be healed away.
+          </li>
+          <li>
+            <span className="severity">[V4]</span> Ambiguity veto — if the top two locator
+            candidates are within 0.05 of each other, escalate instead of guessing.
+          </li>
+          <li>
+            <span className="severity">[V5]</span> Runtime regression veto — new console error or
+            5xx on this flow since the baseline forces a defect verdict even if the locator still
+            resolves.
+          </li>
+        </ul>
       </section>
 
       <section className="panel" aria-labelledby="residual-heading" data-testid="residual-gaps">
