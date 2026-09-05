@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runDoctor } from "./commands/doctor.js";
 import { runEval } from "./commands/eval.js";
+import { runReset } from "./commands/reset.js";
+import { runSession } from "./commands/run.js";
 
 export const FORGE_CLI_VERSION = "0.0.0";
 
@@ -25,7 +27,7 @@ function parseFlags(argv: string[]): Record<string, string | boolean> {
   return flags;
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const [command, ...rest] = process.argv.slice(2);
   const flags = parseFlags(rest);
 
@@ -34,19 +36,25 @@ function main(): number {
       return runDoctor(repoRoot);
 
     case "eval":
-      return runEval(repoRoot, {
+      return await runEval(repoRoot, {
         tier: flags.tier === "live" ? "live" : "replay",
         caseId: typeof flags.case === "string" ? flags.case : undefined,
         repeat: typeof flags.repeat === "string" ? Number(flags.repeat) : 1,
         coverage: Boolean(flags.coverage),
       });
 
+    case "run":
+      return await runSession(rest[0]);
+
+    case "reset":
+      return await runReset(repoRoot);
+
     default:
       console.error(
-        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available in Ph0: doctor, eval.`,
+        `forge: unknown or not-yet-implemented command '${command ?? ""}'. Available: doctor, eval, reset, run.`,
       );
       return 1;
   }
 }
 
-process.exit(main());
+process.exit(await main());

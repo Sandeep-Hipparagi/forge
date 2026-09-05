@@ -10,7 +10,14 @@
     "dev": "tsc -b --watch"
   },
   "dependencies": {
+    "@forge/agent-harness": "workspace:*",
+    "@forge/api": "workspace:*",
     "@forge/core": "workspace:*",
-    "@forge/orchestrator": "workspace:*"
+    "@forge/orchestrator": "workspace:*",
+    "@forge/store": "workspace:*",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
   }
 }

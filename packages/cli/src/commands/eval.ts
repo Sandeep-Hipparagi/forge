@@ -1,40 +1,27 @@
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { evalExitCode, loadCases, runCases, type EvalOptions } from "@forge/evals";
 
-export type EvalOptions = {
-  tier: "replay" | "live";
-  caseId?: string | undefined;
-  repeat: number;
-  coverage: boolean;
-};
-
-/**
- * Ph0 stub of the golden-case harness (16 · Agent Test Suite).
- * `fixtures/golden/**` is empty until Ph1.6 builds real cases, so the run is
- * vacuously green — every one of zero cases matched its expected verdict.
- * The real orchestrator-driven harness replaces this in Ph1.6.
- */
-export function runEval(repoRoot: string, options: EvalOptions): number {
-  const goldenDir = join(repoRoot, "fixtures", "golden");
-  const caseFiles = existsSync(goldenDir)
-    ? readdirSync(goldenDir).filter((f: string) => f.endsWith(".json"))
-    : [];
-
-  const selected = options.caseId
-    ? caseFiles.filter((f: string) => f === `${options.caseId}.json`)
-    : caseFiles;
-
-  if (options.caseId && selected.length === 0) {
-    console.error(`forge eval: no such case '${options.caseId}' in ${goldenDir}`);
+export async function runEval(repoRoot: string, options: EvalOptions): Promise<number> {
+  let cases;
+  try {
+    cases = loadCases(repoRoot, options.caseId);
+  } catch (error) {
+    console.error(`forge eval: ${error instanceof Error ? error.message : "load failed"}`);
     return 3;
   }
-
-  console.log(
-    `FORGE EVAL · ${selected.length} case(s) · ${options.tier} · repeat ${options.repeat}`,
-  );
-  for (const file of selected) {
-    console.log(`  ${file}  (not yet implemented — Ph1.6)`);
+  console.log(`FORGE EVAL · ${cases.length} case(s) · ${options.tier} · repeat ${options.repeat}`);
+  const results = await runCases(repoRoot, options);
+  for (const result of results) {
+    const session = result.verdict?.session;
+    console.log(
+      `  ${result.id}  ${result.title}  ${session?.status ?? "FAILED"}  exit ${
+        session?.exitCode ?? "-"
+      }  ${result.matched ? "✓" : "✗"}`,
+    );
+    if (result.error !== undefined) console.error(`    ${result.error}`);
   }
-  console.log(`\n${selected.length}/${selected.length} · exit 0`);
-  return 0;
+  const exitCode = evalExitCode(results);
+  console.log(
+    `\n${results.filter(({ matched }) => matched).length}/${results.length} · exit ${exitCode}`,
+  );
+  return exitCode;
 }
