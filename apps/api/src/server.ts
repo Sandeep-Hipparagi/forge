@@ -1,6 +1,10 @@
 import {
   SessionInput,
+  buildReport,
+  demoReportInput,
+  renderMarkdown,
   type Lap,
+  type ReportInput,
   type RunContext,
   type Session,
   type SessionEvent,
@@ -8,9 +12,10 @@ import {
 } from "@forge/core";
 import { LapMachine, SessionMachine, exitCodeFor, tg1CanExplore } from "@forge/orchestrator";
 import type { ForgeStore } from "@forge/store";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import { z } from "zod";
-
 type Subscriber = (event: SessionEvent) => void;
 
 class EventBus {
@@ -39,6 +44,8 @@ export type ForgeServerOptions = {
   allowedHosts?: readonly string[];
   webOrigin?: string;
   autoRun?: boolean;
+  /** Repository root — used to load artifacts/sessions/<id>/report-input.json */
+  repositoryRoot?: string;
 };
 
 const TERMINAL = new Set<SessionStatus>(["COMPLETED", "COMPLETED_PARTIAL", "ESCALATED", "ERROR"]);
@@ -424,14 +431,42 @@ export function buildForgeServer(options: ForgeServerOptions): FastifyInstance {
     "/api/diagnoses/:id",
     "/api/patches/:id",
     "/api/patches/:id.diff",
-    "/api/sessions/:id/report",
-    "/api/sessions/:id/report.md",
-    "/api/sessions/:id/report.html",
-    "/api/sessions/:id/score",
     "/api/sessions/:id/suite.zip",
   ]) {
     app.get(path, async (_request, reply) => notFound(reply, "Stubbed resource"));
   }
+
+  function sessionReport(sessionId: string) {
+    const root = options.repositoryRoot ?? process.cwd();
+    const inputPath = join(root, "artifacts", "sessions", sessionId, "report-input.json");
+    const input: ReportInput = existsSync(inputPath)
+      ? (JSON.parse(readFileSync(inputPath, "utf8")) as ReportInput)
+      : demoReportInput(sessionId);
+    return buildReport(input);
+  }
+
+  app.get<{ Params: { id: string } }>("/api/sessions/:id/report", async (request) => {
+    return sessionReport(request.params.id);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/sessions/:id/report.md", async (request, reply) => {
+    const report = sessionReport(request.params.id);
+    void reply.type("text/markdown; charset=utf-8");
+    return renderMarkdown(report);
+  });
+
+  app.get<{ Params: { id: string } }>("/api/sessions/:id/score", async (request) => {
+    return sessionReport(request.params.id).score;
+  });
+
+  app.get<{ Params: { id: string } }>("/api/sessions/:id/report.html", async (request, reply) => {
+    const report = sessionReport(request.params.id);
+    const md = renderMarkdown(report);
+    // Thin HTML twin for print/download — dashboard owns the rich view.
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>FORGE Report · ${report.sessionId}</title><style>body{font-family:system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#202124}pre{white-space:pre-wrap}</style></head><body><pre>${md.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre></body></html>`;
+    void reply.type("text/html; charset=utf-8");
+    return html;
+  });
 
   app.get<{ Params: { id: string } }>("/api/sessions/:id/gates", async () => []);
   app.get<{ Params: { id: string } }>("/api/sessions/:id/escalations", async () => []);

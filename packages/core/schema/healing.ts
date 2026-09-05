@@ -121,6 +121,7 @@ export const ElementFingerprint = z.object({
 
 export type DiagnosisKind = z.infer<typeof DiagnosisKind>;
 export type Diagnosis = z.infer<typeof Diagnosis>;
+export type HealSignals = z.infer<typeof HealSignals>;
 export type HealCandidate = z.infer<typeof HealCandidate>;
 export type TestPatch = z.infer<typeof TestPatch>;
 export type ElementFingerprint = z.infer<typeof ElementFingerprint>;

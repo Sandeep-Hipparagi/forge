@@ -25,6 +25,18 @@
     "./compile": {
       "types": "./dist/compile/index.d.ts",
       "import": "./dist/compile/index.js"
+    },
+    "./diagnose": {
+      "types": "./dist/diagnose/index.d.ts",
+      "import": "./dist/diagnose/index.js"
+    },
+    "./healing": {
+      "types": "./dist/healing/index.d.ts",
+      "import": "./dist/healing/index.js"
+    },
+    "./report": {
+      "types": "./dist/report/index.d.ts",
+      "import": "./dist/report/index.js"
     }
   },
   "scripts": {
