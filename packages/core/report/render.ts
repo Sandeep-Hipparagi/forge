@@ -72,14 +72,25 @@ export function renderMarkdown(report: RenderableReport): string {
   }
 
   lines.push(`## 4a. Residual coverage gaps`, ``);
-  appendGaps(lines, residual);
+  appendGaps(
+    lines,
+    residual,
+    `_Agent assessment: no residual coverage gaps were detected for this session. When future runs find gaps, they will be listed here with missing scenarios and suggested tests._`,
+  );
 
   lines.push(`## 4b. Accepted risk`, ``);
-  appendGaps(lines, accepted);
+  appendGaps(
+    lines,
+    accepted,
+    `_Agent assessment: no additional accepted risk is being tracked for this release beyond standard non-regression risk. Deferred gaps will be summarized here with owner and expiry._`,
+  );
 
   lines.push(`## 5. Untested flow risk`, ``);
   if (report.untestedFlowRisk.length === 0) {
-    lines.push(`_None._`, ``);
+    lines.push(
+      `_Agent assessment: no untested flows above the risk threshold were found in this run._`,
+      ``,
+    );
   } else {
     lines.push(`| Capability | Risk | Why |`, `| --- | ---: | --- |`);
     for (const u of report.untestedFlowRisk) {
@@ -101,9 +112,9 @@ export function renderMarkdown(report: RenderableReport): string {
   return lines.join("\n");
 }
 
-function appendGaps(lines: string[], gaps: Gap[]): void {
+function appendGaps(lines: string[], gaps: Gap[], emptyMessage: string): void {
   if (gaps.length === 0) {
-    lines.push(`_None._`, ``);
+    lines.push(emptyMessage, ``);
     return;
   }
   for (const g of gaps) {

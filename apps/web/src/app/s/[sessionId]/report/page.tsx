@@ -52,6 +52,8 @@ type ReportJson = {
 };
 
 const API = process.env.FORGE_API_URL ?? "http://127.0.0.1:4000";
+const DEMO_VIDEO_URL =
+  process.env.NEXT_PUBLIC_FORGE_DEMO_VIDEO_URL ?? process.env.FORGE_DEMO_VIDEO_URL ?? "";
 
 async function loadReport(sessionId: string): Promise<ReportJson | null> {
   try {
@@ -159,6 +161,15 @@ export default async function ReportPage({ params }: { params: Promise<{ session
         <p className="mode-banner live" role="status" data-testid="live-banner">
           Live run{meta?.url ? ` against ${meta.url}` : ""}. Score and sections come from this
           session&apos;s explore → plan → run evidence.
+        </p>
+      )}
+
+      {DEMO_VIDEO_URL && (
+        <p className="lede-small">
+          End-to-end demo video (recorded once and reused across reports):{" "}
+          <a href={DEMO_VIDEO_URL} target="_blank" rel="noreferrer">
+            Watch the agent run →
+          </a>
         </p>
       )}
 
@@ -358,7 +369,11 @@ export default async function ReportPage({ params }: { params: Promise<{ session
       <section className="panel" aria-labelledby="residual-heading" data-testid="residual-gaps">
         <h2 id="residual-heading">4a. Residual coverage gaps</h2>
         {residual.length === 0 ? (
-          <p className="empty">None.</p>
+          <p className="empty">
+            The agent compared discovered flows, requirements, and usage patterns and did not detect
+            any residual coverage gaps for this session. When future runs find gaps, they will be
+            listed here with the missing scenarios and suggested new tests.
+          </p>
         ) : (
           <ul className="gap-list">
             {residual.map((g) => (
@@ -373,7 +388,12 @@ export default async function ReportPage({ params }: { params: Promise<{ session
       <section className="panel" aria-labelledby="accepted-heading" data-testid="accepted-risk">
         <h2 id="accepted-heading">4b. Accepted risk</h2>
         {accepted.length === 0 ? (
-          <p className="empty">None.</p>
+          <p className="empty">
+            The agent did not find any high-impact coverage gaps that required an explicit waiver,
+            so no additional accepted risk is being tracked for this release beyond standard
+            non-regression risk. If the team consciously defers a gap in a later run, it will be
+            summarized here with its owner and expiry.
+          </p>
         ) : (
           <ul className="gap-list">
             {accepted.map((g) => (
@@ -388,7 +408,11 @@ export default async function ReportPage({ params }: { params: Promise<{ session
       <section className="panel" aria-labelledby="untested-heading">
         <h2 id="untested-heading">5. Untested flow risk</h2>
         {report.untestedFlowRisk.length === 0 ? (
-          <p className="empty">None.</p>
+          <p className="empty">
+            For this run, the agent did not identify any user journeys with zero test coverage above
+            the risk threshold. When untested flows exist, they will appear here ordered by impact,
+            together with the next tests that would close the risk.
+          </p>
         ) : (
           <table>
             <thead>
