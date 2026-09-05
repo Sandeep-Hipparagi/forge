@@ -16,7 +16,8 @@
       "@forge/core": ["packages/core/src/index.ts"],
       "@forge/store": ["packages/store/src/index.ts"],
       "@forge/orchestrator": ["packages/orchestrator/src/index.ts"],
-      "@forge/api": ["packages/api/src/index.ts"]
+      "@forge/api": ["packages/api/src/index.ts"],
+      "@forge/evals/*": ["packages/evals/*"]
     },
     "types": ["node", "vitest/globals"]
   }

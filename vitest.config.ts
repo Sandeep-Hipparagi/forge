@@ -13,6 +13,9 @@ export default defineConfig({
       "@forge/orchestrator": fileURLToPath(
         new URL("./packages/orchestrator/src/index.ts", import.meta.url),
       ),
+      "@forge/api": fileURLToPath(
+        new URL("./packages/api/src/index.ts", import.meta.url),
+      ),
     },
   },
   test: {
