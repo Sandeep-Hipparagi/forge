@@ -1,0 +1,5 @@
+#!/bin/sh
+grep -Eq '^(build|chore|ci|docs|feat|fix|refactor|test)(\([^)]+\))?: .+' "$1" || {
+  echo "Commit messages must use conventional format, e.g. fix: summary"
+  exit 1
+}

@@ -1,6 +1,7 @@
 {
   "name": "forge",
   "private": true,
+  "type": "module",
   "version": "0.0.0",
   "packageManager": "pnpm@10.12.1",
   "engines": {
@@ -11,11 +12,12 @@
     "doctor": "node scripts/doctor.mjs",
     "typecheck": "tsc --noEmit --pretty false",
     "format:check": "prettier --check .",
-    "lint": "pnpm run format:check && depcruise --config .dependency-cruiser.cjs packages --output-type err-long",
+    "lint": "eslint . && pnpm run format:check && depcruise --config .dependency-cruiser.cjs packages --output-type err-long",
     "test": "vitest run",
     "eval": "tsx packages/cli/src/forge.ts eval",
     "demo:check": "pnpm run eval",
-    "verify": "pnpm run doctor && pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run eval"
+    "verify": "pnpm run doctor && pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run eval",
+    "prepare": "node scripts/setup-hooks.mjs"
   },
   "devDependencies": {
     "@types/node": "22.15.3",
@@ -26,5 +28,7 @@
     "zod": "3.24.3",
     "tsx": "4.19.3",
     "@playwright/test": "1.52.0"
+    ,"eslint": "9.25.1"
+    ,"typescript-eslint": "8.30.1"
   }
 }

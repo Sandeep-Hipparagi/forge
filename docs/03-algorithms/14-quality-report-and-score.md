@@ -189,7 +189,7 @@ Each `PRODUCT_BUG` diagnosis becomes one entry: the capability, `expected`, `act
 
 Defects do not move the Robustness Score (§3.1), and they **do** determine the process exit code: a completed run that found a real defect exits non-zero, which is what `S-4` requires.
 
-> **Open at Checkpoint C2 and still open.** `FR-904` maps the four terminal states to exit codes `0/0/2/3` and leaves no code for *"the run completed and found a real defect"*. [04 §3.4](../02-architecture/04-system-architecture.md) proposes deriving the code from the terminal state **and** `Session.defectsFound`, giving exit `1`. This document assumes that resolution; if `FR-904` is left as written instead, `S-4` needs rewording. One of the two still has to move.
+> **Resolved at Ph0.** The exit code derives from terminal state and `Session.defectsFound`; a completed run with a real defect exits `1` while remaining a successful product verdict.
 
 ---
 

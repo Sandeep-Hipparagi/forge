@@ -242,7 +242,7 @@ Three outcomes, all of them recorded. The third keeps this honest: after two rou
 
 **Exit code 1 is a success of the product.** It means FORGE found something. CI should treat 0 and 1 as valid outcomes, and 3 as the only true failure.
 
-> **Flagged for Checkpoint C2.** `FR-904` maps the four terminal states to exit codes `0/0/2/3` and leaves no code for *"the run completed and found a real defect"* — which `S-4` requires to be non-zero. The table above resolves this by deriving the exit code from the terminal state **and** the findings, leaving `FR-904`'s four terminal states untouched. Accept it and `FR-904`'s acceptance criterion takes a one-line amendment; reject it and `S-4` needs rewording instead. One of the two has to move.
+> **Resolved at Ph0.** Exit code derives from terminal state and findings: a completed run with ≥1 `PRODUCT_BUG` exits `1`. `FR-904` and the eval contract use this rule.
 
 ---
 

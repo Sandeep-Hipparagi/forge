@@ -73,7 +73,7 @@ How the pieces fit. The batch that produces the diagram a judge will stare at.
 
 **Checkpoint C2 — passed.** Architecture and data model reviewed and merged to `main` before any algorithm was specified against them.
 
-**Carried from C2, still needs a ruling:** [04 §3.4](02-architecture/04-system-architecture.md) proposes deriving the process exit code from the terminal state **and** the findings, so that a completed run which found a real defect exits `1`. `FR-904` currently maps the four terminal states to `0/0/2/3` with no non-zero code for a found defect, which contradicts `S-4`. Either `FR-904`'s acceptance criterion takes a one-line amendment, or `S-4` is reworded. One of the two must move.
+**Resolved from C2:** exit code derives from terminal state and findings. A completed run with a real product defect exits `1`; `FR-904`, the architecture, and eval cases now agree.
 
 ---
 
