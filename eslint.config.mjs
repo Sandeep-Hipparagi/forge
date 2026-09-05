@@ -39,4 +39,10 @@ export default tseslint.config(
       "no-restricted-globals": ["error", "Date", "Math"],
     },
   },
+  {
+    files: ["packages/core/src/env.ts"],
+    rules: {
+      "no-restricted-globals": "off",
+    },
+  },
 );
