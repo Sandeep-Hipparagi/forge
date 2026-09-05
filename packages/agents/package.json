@@ -1,1 +1,6 @@
-{"name":"@forge/agents","private":true,"version":"0.0.0","type":"module"}
+{
+  "name": "@forge/agents",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module"
+}

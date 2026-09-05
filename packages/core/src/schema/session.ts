@@ -37,9 +37,16 @@ export const defaultSessionConfig = (): SessionConfigSnapshot =>
   SessionConfigSnapshot.parse({
     version: "forge/v1",
     model: { id: "claude-opus-5", enabled: false, timeoutMs: 20_000 },
-    exploration: { allowedHosts: ["localhost", "127.0.0.1"], destructiveActions: "deny" },
+    exploration: {
+      allowedHosts: ["localhost", "127.0.0.1"],
+      destructiveActions: "deny",
+    },
     coverage: { floor: 0.7, maxReplanRounds: 2 },
-    healing: { autoHealThreshold: 0.85, reviewThreshold: 0.65, minMargin: 0.05 },
+    healing: {
+      autoHealThreshold: 0.85,
+      reviewThreshold: 0.65,
+      minMargin: 0.05,
+    },
     budget: { maxCapabilities: 20, maxDurationMs: 1_800_000, maxUsd: 2 },
     redactionPolicyVersion: "forge/redaction/v1",
     secretProvider: "env",

@@ -681,7 +681,7 @@ Writing the assertions before the code surfaced five places where the upstream d
 
 ### 11.5 The exit code for a completed run that found a defect (`W-5`)
 
-Still formally open from Checkpoint C2. `FR-904` maps four terminal states to `0/0/2/3` and leaves no code for *"completed, and found a real defect"*, which `S-4` requires to be non-zero.
+Resolved in Ph0: `FR-904` maps a completed run with `Session.defectsFound` to exit **1**; clean completion is **0**, escalation is **2**, and an operational error is **3**.
 
 **The default in force is implemented here**: the exit code derives from the terminal state **and** `Session.defectsFound` ([04 §3.4](../02-architecture/04-system-architecture.md)), so `EC-05`, `EC-06` and `EC-07` assert exit **1**. If the ruling goes the other way, three lines of three case files change and nothing else does — which is the reason the assertion lives in a fixture rather than in code.
 

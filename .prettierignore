@@ -2,3 +2,11 @@ node_modules/
 dist/
 artifacts/
 *.lock
+pnpm-lock.yaml
+
+# Product documentation is reviewed separately; this gate protects executable code and config.
+docs/
+docs-2/
+README.md
+TASKLIST.md
+*.html
