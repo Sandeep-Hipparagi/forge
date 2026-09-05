@@ -407,9 +407,15 @@ SUT_FROZEN_CLOCK=2026-01-01T00:00:00Z
 
 # --- Fixtures (16 §3) --------------------------------------------------
 FORGE_FIXTURES=off                    # off | replay | record
+
+# --- Configuration provenance -----------------------------------------
+FORGE_CONFIG_VERSION=forge/v1          # resolved and frozen into every Session
+FORGE_SECRET_PROVIDER=env              # MVP adapter; providers return secrets only at the boundary
 ```
 
 `forge doctor` **fails** if `FORGE_WRITE_ALLOWLIST` has been widened, if `FORGE_ALLOWED_HOSTS` contains a non-loopback host while `FORGE_DISPOSABLE_TARGET` is true, or if `SUT_CONTROL_ENABLED` is true while the API is bound to a non-loopback address. Safety settings are not something to discover have drifted at T−15m; three environment variables are cheap to check and expensive to get wrong.
+
+`FORGE_SECRET_PROVIDER=env` is an adapter choice, not permission to persist a secret. The provider resolves credentials only at the session boundary; `SessionConfigSnapshot` records the provider name and redaction-policy version, never its returned value. `forge doctor` rejects an unknown provider or an empty required credential reference before a session starts.
 
 ---
 

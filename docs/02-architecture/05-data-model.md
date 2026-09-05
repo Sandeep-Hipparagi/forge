@@ -82,6 +82,19 @@ export const SessionInput = z.object({
   }).default({}),
 });
 
+// Resolved at creation and frozen for the lifetime of the session. A later
+// environment-variable or dashboard change must never reinterpret a run.
+export const SessionConfigSnapshot = z.object({
+  version: z.literal("forge/v1"),
+  secretProvider: z.enum(["env"]),                 // provider identity only; never a secret or reference
+  model: z.object({ id: z.string(), enabled: z.boolean(), timeoutMs: z.number().int().positive() }),
+  exploration: z.object({ allowedHosts: z.array(z.string()), destructiveActions: z.enum(["deny", "disposable_only"]) }),
+  coverage: z.object({ floor: Confidence, maxReplanRounds: z.number().int().min(0).max(2) }),
+  healing: z.object({ autoHealThreshold: Confidence, reviewThreshold: Confidence, minMargin: Confidence }),
+  budget: SessionInput.shape.budget,
+  redactionPolicyVersion: z.string(),
+});
+
 export const SessionStatus = z.enum([
   "CREATED", "EXPLORING", "PRIORITISING", "LAPPING", "REPORTING",
   "COMPLETED", "COMPLETED_PARTIAL", "ESCALATED", "ERROR",              // FR-904
@@ -92,6 +105,8 @@ export const Session = z.object({
   input: SessionInput.omit({ password: true }),   // the password never reaches this object
   status: SessionStatus,
   authenticated: z.boolean().default(false),
+  config: SessionConfigSnapshot,
+  configSha256: z.string().length(64),              // canonical JSON digest; I-21
   storageStatePath: z.string().nullable().default(null),
   exitCode: z.number().int().min(0).max(3).nullable(),
   defectsFound: z.number().int().nonnegative().default(0),
@@ -106,6 +121,8 @@ export const Session = z.object({
 ```
 
 > **`SessionInput.omit({ password: true })` is the whole of `FR-006` expressed as a type.** The credential is accepted at the API boundary, used to produce `storageState`, and then it is structurally impossible for it to reach a stored `Session`, an event payload, or a serialised response — because the type it would have to travel in does not have the field. A rule enforced by a schema beats a rule enforced by a code review at hour six.
+
+At creation, the API resolves approved environment and target-profile values, validates `SessionConfigSnapshot`, canonicalises it, and stores its SHA-256 digest beside the session. The dashboard receives a redacted view only. A later configuration change creates `forge/v2`; it never changes how a `forge/v1` report is read.
 
 ### 2.3 Perception — State, Affordance, Transition
 
@@ -384,6 +401,8 @@ export const SessionEventType = z.enum([
 ]);
 
 export const SessionEvent = z.object({
+  id: Id,
+  eventVersion: z.literal(1),
   seq: z.number().int().nonnegative(),             // monotonic, gapless, per session
   sessionId: Id,
   lapId: Id.nullable(),
@@ -394,6 +413,10 @@ export const SessionEvent = z.object({
   ]),
   type: SessionEventType,
   payload: z.record(z.unknown()),
+  evidenceIds: z.array(Id).default([]),
+  traceId: z.string(),
+  spanId: z.string(),
+  configSha256: z.string().length(64),
 });
 
 export const EvidenceType = z.enum([
@@ -421,6 +444,8 @@ export const Evidence = z.object({
 ```
 
 `heal.rolled_back` earns its place in the event enum: it is the only real-world signal that a heal was wrong, and it is the cheapest early warning in the project ([decisions/README](../decisions/README.md), ADR-001 A1).
+
+**Event compatibility rule.** Event types are additive. A breaking payload change requires a new `eventVersion` and a temporary dual-publish path; an unknown event remains a displayable audit row, never a dashboard crash. Event payloads contain typed domain data and evidence references only: never credentials, cookies, authorization headers, raw prompts, full DOM dumps, or raw trace/HAR/network bodies.
 
 ### 2.9 Diagnosis, candidates, patches, fingerprints
 
@@ -753,6 +778,7 @@ CREATE TABLE quality_reports (
 | `I-18` | A `QualityReport` has all five brief-mandated fields populated | `QualityReportSchema` | `report/contents.test.ts` |
 | `I-19` | `RobustnessScore.current` recomputes exactly from stored inputs | `report.score()` | `report/score.test.ts` |
 | `I-20` | Every affordance with `destructive = true` also has `observedNotExercised = true` | `explorer.denyList()` | `perception/denylist.test.ts` |
+| `I-21` | A session's stored configuration digest equals the canonical snapshot and never changes after creation | `store.createSession()` | `store/session-config.test.ts` |
 
 `I-13` and `I-17` are the two that would otherwise be discovered late and painfully: the first is the only thing standing between a plan and a hallucinated button, and the second is what the promise *"the first lap is the most valuable"* actually rests on (ADR-012 A3).
 

@@ -278,7 +278,7 @@ When a PRD is supplied, the Critic answers a second and different question: not 
 
 ### 8.1 The pipeline
 
-1. **Sectioning.** Split on Markdown headings; each section gets a stable `prdSectionRef` of its heading path plus ordinal — `§3.2 Checkout / Coupons`.
+1. **Sectioning.** Split Markdown or plain text on headings; each section gets a stable `prdSectionRef` of its heading path plus ordinal — `§3.2 Checkout / Coupons`. PDF is deliberately not an MVP input: when added, extraction runs in a sandbox and yields the same plain-text shape before this stage. No parser is allowed to execute document content.
 2. **Requirement extraction.** Sentences containing a normative verb are requirements. The lexicon is a unit-tested constant, and the verb sets the severity ceiling:
 
    | Verb form | Severity if uncovered |
@@ -297,7 +297,7 @@ Step 4 is where the design could have leaked. Letting the model say *"SC-014 cov
 
 `CoverageAssessment.prdGaps[]` names the requirement, its section, and its severity. Capped at 15, sorted by severity.
 
-Stated plainly: **this is lexical analysis of prose.** On a well-structured PRD with numbered requirements it is genuinely useful. On a discursive product brief full of background and rationale it over-reports, because the extractor cannot tell a requirement from a description of a competitor's feature. The cap and the severity sort keep an over-report readable; a hard claim of completeness would not survive contact with a real PRD, so we do not make one.
+Stated plainly: **this is lexical analysis of prose.** On a well-structured PRD with numbered requirements it is genuinely useful. On a discursive product brief full of background and rationale it over-reports, because the extractor cannot tell a requirement from a description of a competitor's feature. The cap and the severity sort keep an over-report readable; a hard claim of completeness would not survive contact with a real PRD, so we do not make one. Future semantic/vector matching may propose matches, but it can never be the only traceability mechanism: every accepted link still passes the verification in step 4.
 
 ---
 
