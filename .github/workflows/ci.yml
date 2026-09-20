@@ -81,7 +81,7 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install chromium --with-deps
-      - run: pnpm forge eval --tier live --case EC-05 --case EC-06
+      - run: pnpm forge eval --tier live
 
   nightly:
     name: nightly
