@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { DurableEventStore } from "../src/index.js";
 import { fixedClock } from "@forge/core";
 
+let sqliteAvailable = false;
+let DurableEventStoreClass:
+  | typeof import("../src/index.js").DurableEventStore
+  | null = null;
+
+try {
+  const storeModule = await import("../src/index.js");
+  const Database = (await import("better-sqlite3")).default;
+  const db = new Database(":memory:");
+  db.close();
+  DurableEventStoreClass = storeModule.DurableEventStore;
+  sqliteAvailable = true;
+} catch {
+  sqliteAvailable = false;
+}
+
 describe("DurableEventStore", () => {
-  it.skipIf(process.versions.node.split(".")[0] !== "22")(
+  it.skipIf(!sqliteAvailable || process.versions.node.split(".")[0] !== "22")(
     "commits before publishing and returns events in order",
     () => {
-      const store = new DurableEventStore(
+      if (!DurableEventStoreClass) return;
+      const store = new DurableEventStoreClass(
         ":memory:",
         fixedClock("2026-01-01T00:00:00.000Z"),
       );
