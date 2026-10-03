@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Confidence, Id, Iso } from "./primitives.js";
+import { BBox, Confidence, Id, Iso } from "./primitives.js";
 
 export const AffordanceKind = z.enum([
   "button",
@@ -23,6 +23,7 @@ export const Affordance = z.object({
   accessibleName: z.string().nullable(),
   kind: AffordanceKind,
   enabled: z.boolean().default(true),
+  bbox: BBox.nullable().default(null),
   destructive: z.boolean().default(false),
   observedNotExercised: z.boolean().default(false),
   notExercisedReason: z.string().nullable().default(null),
@@ -93,5 +94,22 @@ export const CapabilityMap = z.object({
 
 export type Affordance = z.infer<typeof Affordance>;
 export type State = z.infer<typeof State>;
+export type Transition = z.infer<typeof Transition>;
+export type RiskFactors = z.infer<typeof RiskFactors>;
 export type Capability = z.infer<typeof Capability>;
 export type CapabilityMap = z.infer<typeof CapabilityMap>;
+
+export interface CapabilitySubgraph {
+  states: Array<{
+    id: string;
+    signature: string;
+    url: string;
+    title: string;
+    snapshotYaml: string;
+  }>;
+  transitions: Transition[];
+  affordances: Affordance[];
+  entryStateId: string;
+  exitConditions: string[];
+  subgraphTruncated?: boolean;
+}

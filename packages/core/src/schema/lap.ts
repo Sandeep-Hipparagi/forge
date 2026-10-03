@@ -48,6 +48,8 @@ export const TestStep = z.object({
   optional: z.boolean().default(false),
   fingerprintId: Id.nullable().default(null),
   resolvedCount: z.number().int().nullable().default(null),
+  locatorStrategy: z.string().nullable().optional(),
+  locatorArgs: z.record(z.unknown()).nullable().optional(),
 });
 export const Scenario = z.object({
   id: z.string().regex(/^SC-\d{3,}$/),
@@ -65,6 +67,7 @@ export const Scenario = z.object({
   sourceRefs: z.array(z.string()).default([]),
   plannedNotGenerated: z.boolean().default(false),
   notGeneratedReason: z.string().nullable().default(null),
+  rationale: z.string().max(1000).nullable().optional(),
   version: z.number().int().positive().default(1),
 });
 export const TestPlan = z.object({
@@ -131,6 +134,13 @@ export const Lap = z.object({
   startedAt: Iso,
   bankedAt: Iso.nullable(),
 });
+export type ScenarioClass = z.infer<typeof ScenarioClass>;
+export type StepKind = z.infer<typeof StepKind>;
+export type Gap = z.infer<typeof Gap>;
+export type TestStep = z.infer<typeof TestStep>;
+export type Scenario = z.infer<typeof Scenario>;
 export type TestPlan = z.infer<typeof TestPlan>;
 export type CoverageAssessment = z.infer<typeof CoverageAssessment>;
+export type LapStatus = z.infer<typeof LapStatus>;
+export type LapOutcome = z.infer<typeof LapOutcome>;
 export type Lap = z.infer<typeof Lap>;

@@ -1,5 +1,5 @@
 {
-  "name": "@forge/perception",
+  "name": "@forge/planner",
   "version": "0.0.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@forge/core": "workspace:*",
+    "@forge/critic": "workspace:*",
     "zod": "^3.24.3"
   },
   "devDependencies": {

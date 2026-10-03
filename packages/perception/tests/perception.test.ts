@@ -2,14 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeSnapshot,
   stateSignature,
-  extractAffordances,
   affordancesOf,
   isDestructive,
   detectLoginForm,
   MAX_INTERACTIVES,
 } from "../src/index.js";
 
-const baseSnapshot = {
+import type { AccessibilityNode, AccessibilitySnapshot } from "../src/types.js";
+
+const baseSnapshot: AccessibilitySnapshot = {
   url: "http://localhost/products?page=1",
   title: "Products",
   timestamp: "2026-01-01T00:00:00.000Z",
@@ -26,16 +27,25 @@ const baseSnapshot = {
       role: "main",
       children: [
         { role: "heading", name: "Products", level: 1, children: [] },
-        { role: "list", children: [
-          { role: "listitem", children: [
-            { role: "link", name: "Product A", children: [] },
-            { role: "button", name: "Add to cart", children: [] },
-          ]},
-          { role: "listitem", children: [
-            { role: "link", name: "Product B", children: [] },
-            { role: "button", name: "Add to cart", children: [] },
-          ]},
-        ]},
+        {
+          role: "list",
+          children: [
+            {
+              role: "listitem",
+              children: [
+                { role: "link", name: "Product A", children: [] },
+                { role: "button", name: "Add to cart", children: [] },
+              ],
+            },
+            {
+              role: "listitem",
+              children: [
+                { role: "link", name: "Product B", children: [] },
+                { role: "button", name: "Add to cart", children: [] },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],
@@ -48,7 +58,7 @@ describe("perception", () => {
       const normalized = normalizeSnapshot(baseSnapshot);
       const refs: string[] = [];
 
-      function collect(node: typeof baseSnapshot.nodes[0]) {
+      function collect(node: AccessibilityNode) {
         if (node.ref) refs.push(node.ref);
         if (node.children) node.children.forEach(collect);
       }
@@ -89,10 +99,29 @@ describe("perception", () => {
         ],
       };
       const normalized = normalizeSnapshot(snap);
-      const heading = normalized.nodes.find(n => n.role === "heading");
-      const button = normalized.nodes.find(n => n.role === "button");
+      const heading = normalized.nodes.find((n) => n.role === "heading");
+      const button = normalized.nodes.find((n) => n.role === "button");
       expect(heading?.ref).toBeUndefined();
       expect(button?.ref).toBeDefined();
+    });
+
+    it("enforces the 8 KB snapshot budget and reports truncation", () => {
+      const huge = {
+        ...baseSnapshot,
+        nodes: [
+          {
+            role: "main",
+            children: Array.from({ length: 250 }, (_, i) => ({
+              role: "button",
+              name: `Button ${i} ${"x".repeat(200)}`,
+              children: [],
+            })),
+          },
+        ],
+      };
+      const normalized = normalizeSnapshot(huge);
+      expect(JSON.stringify(normalized).length).toBeLessThanOrEqual(8192);
+      expect(normalized.metadata.snapshotTruncated).toBe(true);
     });
   });
 
@@ -126,9 +155,12 @@ describe("perception", () => {
         ...listPage,
         nodes: listPage.nodes.map((n, i) => ({
           ...n,
-          children: n.children?.map((c, j) => ({
+          children: n.children?.map((c) => ({
             ...c,
-            name: c.name?.replace(`Product ${i}`, "Product #"),
+            name:
+              "name" in c && typeof c.name === "string"
+                ? c.name.replace(`Product ${i}`, "Product #")
+                : null,
           })),
         })),
       });
@@ -137,14 +169,26 @@ describe("perception", () => {
     });
 
     it("masks digits in names", () => {
-      const snap1 = { ...baseSnapshot, nodes: [{ role: "button", name: "Cart (2)", children: [] }] };
-      const snap2 = { ...baseSnapshot, nodes: [{ role: "button", name: "Cart (5)", children: [] }] };
+      const snap1 = {
+        ...baseSnapshot,
+        nodes: [{ role: "button", name: "Cart (2)", children: [] }],
+      };
+      const snap2 = {
+        ...baseSnapshot,
+        nodes: [{ role: "button", name: "Cart (5)", children: [] }],
+      };
       expect(stateSignature(snap1)).toBe(stateSignature(snap2));
     });
 
     it("normalizes URLs to route templates", () => {
-      const snap1 = { ...baseSnapshot, url: "http://localhost/orders/12345/items" };
-      const snap2 = { ...baseSnapshot, url: "http://localhost/orders/67890/items" };
+      const snap1 = {
+        ...baseSnapshot,
+        url: "http://localhost/orders/12345/items",
+      };
+      const snap2 = {
+        ...baseSnapshot,
+        url: "http://localhost/orders/67890/items",
+      };
       expect(stateSignature(snap1)).toBe(stateSignature(snap2));
     });
 
@@ -170,12 +214,12 @@ describe("perception", () => {
       const affs = affordancesOf(normalized, "st_00000001");
 
       expect(affs.length).toBe(4);
-      expect(affs[0].kind).toBe("button");
-      expect(affs[1].kind).toBe("link");
-      expect(affs[2].kind).toBe("textbox");
-      expect(affs[3].kind).toBe("checkbox");
-      expect(affs.every(a => a.stateId === "st_00000001")).toBe(true);
-      expect(affs.every(a => a.id.startsWith("af_e"))).toBe(true);
+      expect(affs[0]!.kind).toBe("button");
+      expect(affs[1]!.kind).toBe("link");
+      expect(affs[2]!.kind).toBe("textbox");
+      expect(affs[3]!.kind).toBe("checkbox");
+      expect(affs.every((a) => a.stateId === "st_00000001")).toBe(true);
+      expect(affs.every((a) => a.id.startsWith("af_e"))).toBe(true);
     });
 
     it("marks destructive affordances", () => {
@@ -190,21 +234,26 @@ describe("perception", () => {
       const normalized = normalizeSnapshot(snap);
       const affs = affordancesOf(normalized, "st_00000001");
 
-      expect(affs[0].destructive).toBe(true);
-      expect(affs[1].destructive).toBe(true);
-      expect(affs[2].destructive).toBe(false);
+      expect(affs[0]!.destructive).toBe(true);
+      expect(affs[1]!.destructive).toBe(true);
+      expect(affs[2]!.destructive).toBe(false);
     });
 
     it("includes bbox when available", () => {
       const snap = {
         ...baseSnapshot,
         nodes: [
-          { role: "button", name: "Click", bbox: { x: 10, y: 20, width: 100, height: 30 }, children: [] },
+          {
+            role: "button",
+            name: "Click",
+            bbox: { x: 10, y: 20, width: 100, height: 30 },
+            children: [],
+          },
         ],
       };
       const normalized = normalizeSnapshot(snap);
       const affs = affordancesOf(normalized, "st_00000001");
-      expect(affs[0].bbox).toEqual({ x: 10, y: 20, w: 100, h: 30 });
+      expect(affs[0]!.bbox).toEqual({ x: 10, y: 20, w: 100, h: 30 });
     });
   });
 
@@ -237,8 +286,18 @@ describe("perception", () => {
         {
           role: "form",
           children: [
-            { role: "textbox", name: "Email", autocomplete: "email", children: [] },
-            { role: "textbox", name: "Password", autocomplete: "current-password", children: [] },
+            {
+              role: "textbox",
+              name: "Email",
+              autocomplete: "email",
+              children: [],
+            },
+            {
+              role: "textbox",
+              name: "Password",
+              autocomplete: "current-password",
+              children: [],
+            },
             { role: "button", name: "Sign in", children: [] },
           ],
         },
@@ -247,18 +306,43 @@ describe("perception", () => {
 
     const loginDomFacts = {
       inputs: [
-        { type: "email", name: "email", id: "email", autocomplete: "email", placeholder: "Email", accessibleName: "Email", ref: "e0" },
-        { type: "password", name: "password", id: "password", autocomplete: "current-password", placeholder: "Password", accessibleName: "Password", ref: "e1" },
+        {
+          type: "email",
+          name: "email",
+          id: "email",
+          autocomplete: "email",
+          placeholder: "Email",
+          accessibleName: "Email",
+          ref: "e0",
+        },
+        {
+          type: "password",
+          name: "password",
+          id: "password",
+          autocomplete: "current-password",
+          placeholder: "Password",
+          accessibleName: "Password",
+          ref: "e1",
+        },
       ],
       forms: [
-        { ref: "form_0", action: "/login", method: "POST", inputs: ["e0", "e1"], buttons: ["e2"] },
+        {
+          ref: "form_0",
+          action: "/login",
+          method: "POST",
+          inputs: ["e0", "e1"],
+          buttons: ["e2"],
+        },
       ],
       buttons: [
-        { ref: "e2", accessibleName: "Sign in", role: "button", landmark: "main" },
+        {
+          ref: "e2",
+          accessibleName: "Sign in",
+          role: "button",
+          landmark: "main",
+        },
       ],
-      landmarks: [
-        { role: "main", label: null, refs: ["e0", "e1", "e2"] },
-      ],
+      landmarks: [{ role: "main", label: null, refs: ["e0", "e1", "e2"] }],
     };
 
     it("detects standard login form with high confidence", () => {
@@ -273,7 +357,20 @@ describe("perception", () => {
     });
 
     it("returns null when no password field", () => {
-      const dom = { ...loginDomFacts, inputs: [{ type: "email", name: "email", id: "email", autocomplete: "email", placeholder: "Email", accessibleName: "Email", ref: "e0" }] };
+      const dom = {
+        ...loginDomFacts,
+        inputs: [
+          {
+            type: "email",
+            name: "email",
+            id: "email",
+            autocomplete: "email",
+            placeholder: "Email",
+            accessibleName: "Email",
+            ref: "e0",
+          },
+        ],
+      };
       const normalized = normalizeSnapshot(loginSnapshot);
       expect(detectLoginForm(normalized, dom)).toBeNull();
     });
@@ -282,8 +379,24 @@ describe("perception", () => {
       const dom = {
         ...loginDomFacts,
         inputs: [
-          { type: "password", name: "password", id: "password", autocomplete: "new-password", placeholder: "Password", accessibleName: "Password", ref: "e1" },
-          { type: "password", name: "confirm", id: "confirm", autocomplete: "new-password", placeholder: "Confirm", accessibleName: "Confirm", ref: "e2" },
+          {
+            type: "password",
+            name: "password",
+            id: "password",
+            autocomplete: "new-password",
+            placeholder: "Password",
+            accessibleName: "Password",
+            ref: "e1",
+          },
+          {
+            type: "password",
+            name: "confirm",
+            id: "confirm",
+            autocomplete: "new-password",
+            placeholder: "Confirm",
+            accessibleName: "Confirm",
+            ref: "e2",
+          },
         ],
       };
       const normalized = normalizeSnapshot(loginSnapshot);
@@ -294,8 +407,24 @@ describe("perception", () => {
       const dom = {
         ...loginDomFacts,
         inputs: [
-          { type: "text", name: "username", id: "username", autocomplete: "username", placeholder: "Username", accessibleName: "Username", ref: "e0" },
-          { type: "password", name: "password", id: "password", autocomplete: "current-password", placeholder: "Password", accessibleName: "Password", ref: "e1" },
+          {
+            type: "text",
+            name: "username",
+            id: "username",
+            autocomplete: "username",
+            placeholder: "Username",
+            accessibleName: "Username",
+            ref: "e0",
+          },
+          {
+            type: "password",
+            name: "password",
+            id: "password",
+            autocomplete: "current-password",
+            placeholder: "Password",
+            accessibleName: "Password",
+            ref: "e1",
+          },
         ],
       };
       const normalized = normalizeSnapshot(loginSnapshot);
@@ -307,16 +436,35 @@ describe("perception", () => {
     it("detects form-less login in same landmark", () => {
       const dom = {
         inputs: [
-          { type: "email", name: "email", id: "email", autocomplete: "email", placeholder: "Email", accessibleName: "Email", ref: "e0" },
-          { type: "password", name: "password", id: "password", autocomplete: "current-password", placeholder: "Password", accessibleName: "Password", ref: "e1" },
+          {
+            type: "email",
+            name: "email",
+            id: "email",
+            autocomplete: "email",
+            placeholder: "Email",
+            accessibleName: "Email",
+            ref: "e0",
+          },
+          {
+            type: "password",
+            name: "password",
+            id: "password",
+            autocomplete: "current-password",
+            placeholder: "Password",
+            accessibleName: "Password",
+            ref: "e1",
+          },
         ],
         forms: [],
         buttons: [
-          { ref: "e2", accessibleName: "Sign in", role: "button", landmark: "main" },
+          {
+            ref: "e2",
+            accessibleName: "Sign in",
+            role: "button",
+            landmark: "main",
+          },
         ],
-        landmarks: [
-          { role: "main", label: null, refs: ["e0", "e1", "e2"] },
-        ],
+        landmarks: [{ role: "main", label: null, refs: ["e0", "e1", "e2"] }],
       };
       const normalized = normalizeSnapshot(loginSnapshot);
       const result = detectLoginForm(normalized, dom);

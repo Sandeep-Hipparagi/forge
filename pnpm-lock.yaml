@@ -42,7 +42,30 @@ importers:
         specifier: 3.24.3
         version: 3.24.3
 
-  packages/agents: {}
+  packages/agents:
+    dependencies:
+      '@forge/core':
+        specifier: workspace:*
+        version: link:../core
+      '@forge/perception':
+        specifier: workspace:*
+        version: link:../perception
+      playwright:
+        specifier: ^1.52.0
+        version: 1.52.0
+      zod:
+        specifier: ^3.24.3
+        version: 3.24.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.2
+        version: 3.1.2(@types/node@22.15.3)(tsx@4.19.3)
 
   packages/api:
     dependencies:
@@ -65,11 +88,52 @@ importers:
         specifier: workspace:*
         version: link:../evals
 
+  packages/compile:
+    dependencies:
+      '@forge/core':
+        specifier: workspace:*
+        version: link:../core
+      '@forge/planner':
+        specifier: workspace:*
+        version: link:../planner
+      zod:
+        specifier: ^3.24.3
+        version: 3.24.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.2
+        version: 3.1.2(@types/node@22.15.3)(tsx@4.19.3)
+
   packages/core:
     dependencies:
       zod:
         specifier: 3.24.3
         version: 3.24.3
+
+  packages/critic:
+    dependencies:
+      '@forge/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^3.24.3
+        version: 3.24.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.2
+        version: 3.1.2(@types/node@22.15.3)(tsx@4.19.3)
 
   packages/evals:
     dependencies:
@@ -89,7 +153,46 @@ importers:
         specifier: workspace:*
         version: link:../store
 
-  packages/perception: {}
+  packages/perception:
+    dependencies:
+      '@forge/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^3.24.3
+        version: 3.24.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.2
+        version: 3.1.2(@types/node@22.15.3)(tsx@4.19.3)
+
+  packages/planner:
+    dependencies:
+      '@forge/core':
+        specifier: workspace:*
+        version: link:../core
+      '@forge/critic':
+        specifier: workspace:*
+        version: link:../critic
+      zod:
+        specifier: ^3.24.3
+        version: 3.24.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^3.1.2
+        version: 3.1.2(@types/node@22.15.3)(tsx@4.19.3)
 
   packages/runner: {}
 

@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { explore, FRONTIER_BATCH, MAX_STATES } from "../src/frontier.js";
-import { detectLoginForm, buildDomFacts, isAuthenticated } from "../src/login.js";
+import { explore, MAX_STATES } from "../src/frontier.js";
+import {
+  detectLoginForm,
+  buildDomFacts,
+  isAuthenticated,
+} from "../src/login.js";
 import { normalizeSnapshot, stateSignature } from "../src/perception.js";
 
 const loginSnapshot = {
@@ -13,7 +17,12 @@ const loginSnapshot = {
       role: "form",
       children: [
         { role: "textbox", name: "Email", autocomplete: "email", children: [] },
-        { role: "textbox", name: "Password", autocomplete: "current-password", children: [] },
+        {
+          role: "textbox",
+          name: "Password",
+          autocomplete: "current-password",
+          children: [],
+        },
         { role: "button", name: "Sign in", children: [] },
       ],
     },
@@ -23,18 +32,38 @@ const loginSnapshot = {
 
 const loginDomFacts = {
   inputs: [
-    { type: "email", name: "email", id: "email", autocomplete: "email", placeholder: "Email", accessibleName: "Email", ref: "e0" },
-    { type: "password", name: "password", id: "password", autocomplete: "current-password", placeholder: "Password", accessibleName: "Password", ref: "e1" },
+    {
+      type: "email",
+      name: "email",
+      id: "email",
+      autocomplete: "email",
+      placeholder: "Email",
+      accessibleName: "Email",
+      ref: "e0",
+    },
+    {
+      type: "password",
+      name: "password",
+      id: "password",
+      autocomplete: "current-password",
+      placeholder: "Password",
+      accessibleName: "Password",
+      ref: "e1",
+    },
   ],
   forms: [
-    { ref: "form_0", action: "/login", method: "POST", inputs: ["e0", "e1"], buttons: ["e2"] },
+    {
+      ref: "form_0",
+      action: "/login",
+      method: "POST",
+      inputs: ["e0", "e1"],
+      buttons: ["e2"],
+    },
   ],
   buttons: [
     { ref: "e2", accessibleName: "Sign in", role: "button", landmark: "main" },
   ],
-  landmarks: [
-    { role: "main", label: null, refs: ["e0", "e1", "e2"] },
-  ],
+  landmarks: [{ role: "main", label: null, refs: ["e0", "e1", "e2"] }],
 };
 
 const homeSnapshot = {
@@ -43,8 +72,14 @@ const homeSnapshot = {
   timestamp: "2026-01-01T00:00:00.000Z",
   viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
   nodes: [
-    { role: "banner", children: [{ role: "link", name: "Products", children: [] }] },
-    { role: "main", children: [{ role: "heading", name: "Welcome", children: [] }] },
+    {
+      role: "banner",
+      children: [{ role: "link", name: "Products", children: [] }],
+    },
+    {
+      role: "main",
+      children: [{ role: "heading", name: "Welcome", children: [] }],
+    },
   ],
   metadata: { interactivesCount: 0, interactivesDropped: 0 },
 };
@@ -55,15 +90,27 @@ const productsSnapshot = {
   timestamp: "2026-01-01T00:00:00.000Z",
   viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
   nodes: [
-    { role: "banner", children: [{ role: "link", name: "Home", children: [] }] },
-    { role: "main", children: [
-      { role: "list", children: [
-        { role: "listitem", children: [
-          { role: "link", name: "Product A", children: [] },
-          { role: "button", name: "Add to cart", children: [] },
-        ]},
-      ]},
-    ]},
+    {
+      role: "banner",
+      children: [{ role: "link", name: "Home", children: [] }],
+    },
+    {
+      role: "main",
+      children: [
+        {
+          role: "list",
+          children: [
+            {
+              role: "listitem",
+              children: [
+                { role: "link", name: "Product A", children: [] },
+                { role: "button", name: "Add to cart", children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    },
   ],
   metadata: { interactivesCount: 0, interactivesDropped: 0 },
 };
@@ -101,13 +148,24 @@ describe("login", () => {
         url: "http://localhost/dashboard",
         title: "Dashboard",
         nodes: [
-          { role: "banner", children: [{ role: "link", name: "Logout", children: [] }] },
-          { role: "main", children: [{ role: "heading", name: "Welcome", children: [] }] },
+          {
+            role: "banner",
+            children: [{ role: "link", name: "Logout", children: [] }],
+          },
+          {
+            role: "main",
+            children: [{ role: "heading", name: "Welcome", children: [] }],
+          },
         ],
       });
       const afterDom = buildDomFacts(afterSnap);
 
-      const result = isAuthenticated(beforeSnap, afterSnap, beforeDom, afterDom);
+      const result = isAuthenticated(
+        beforeSnap,
+        afterSnap,
+        beforeDom,
+        afterDom,
+      );
       expect(result.authenticated).toBe(true);
     });
 
@@ -124,8 +182,18 @@ describe("login", () => {
           {
             role: "form",
             children: [
-              { role: "textbox", name: "Email", autocomplete: "email", children: [] },
-              { role: "textbox", name: "Password", autocomplete: "current-password", children: [] },
+              {
+                role: "textbox",
+                name: "Email",
+                autocomplete: "email",
+                children: [],
+              },
+              {
+                role: "textbox",
+                name: "Password",
+                autocomplete: "current-password",
+                children: [],
+              },
               { role: "button", name: "Sign in", children: [] },
             ],
           },
@@ -134,7 +202,12 @@ describe("login", () => {
       });
       const afterDom = buildDomFacts(afterSnap);
 
-      const result = isAuthenticated(beforeSnap, afterSnap, beforeDom, afterDom);
+      const result = isAuthenticated(
+        beforeSnap,
+        afterSnap,
+        beforeDom,
+        afterDom,
+      );
       expect(typeof result.authenticated).toBe("boolean");
     });
   });
@@ -178,7 +251,10 @@ describe("frontier exploration", () => {
       },
     };
 
-    const result = await explore(input, mockContext as any);
+    const result = await explore(
+      input,
+      mockContext as unknown as Parameters<typeof explore>[1],
+    );
 
     expect(result.capabilityMap).toBeDefined();
     expect(result.capabilityMap.states.length).toBeGreaterThan(0);
@@ -198,9 +274,14 @@ describe("frontier exploration", () => {
       },
     };
 
-    const result = await explore(input, mockContext as any);
+    const result = await explore(
+      input,
+      mockContext as unknown as Parameters<typeof explore>[1],
+    );
     // With only 2 unique states in mock, frontier exhausts
-    expect(["EXHAUSTED", "STATE_BUDGET"]).toContain(result.capabilityMap.frontier.haltReason);
+    expect(["EXHAUSTED", "STATE_BUDGET"]).toContain(
+      result.capabilityMap.frontier.haltReason,
+    );
   });
 
   it("sorts frontier by value heuristic", async () => {
@@ -214,9 +295,70 @@ describe("frontier exploration", () => {
       },
     };
 
-    const result = await explore(input, mockContext as any);
+    const result = await explore(
+      input,
+      mockContext as unknown as Parameters<typeof explore>[1],
+    );
     expect(result.capabilityMap.capabilities).toBeDefined();
-    expect(result.capabilityMap.capabilities[0].priorityRank).toBe(0);
+    expect(result.capabilityMap.capabilities[0]!.priorityRank).toBe(0);
+  });
+
+  it("halts at the call budget while retaining undiscovered frontier work", async () => {
+    const input = {
+      url: "http://localhost/",
+      budgets: {
+        maxStates: 40,
+        maxDurationMs: 90_000,
+        maxCalls: 3,
+        maxTurns: 8,
+      },
+    };
+    const result = await explore(
+      input,
+      mockContext as unknown as Parameters<typeof explore>[1],
+    );
+    expect(result.capabilityMap.frontier.haltReason).toBe("CALL_BUDGET");
+  });
+
+  it("produces identical IDs and timestamps with an injected deterministic clock", async () => {
+    const makeContext = () => {
+      const context = {
+        ...mockContext,
+        snapshot: vi.fn(),
+        getDomFacts: vi.fn(),
+        now: () => 0,
+        sleep: async () => undefined,
+      };
+      context.snapshot
+        .mockResolvedValueOnce(normalizeSnapshot(homeSnapshot))
+        .mockResolvedValueOnce(normalizeSnapshot(productsSnapshot))
+        .mockResolvedValue(normalizeSnapshot(productsSnapshot));
+      context.getDomFacts.mockResolvedValue({
+        inputs: [],
+        forms: [],
+        buttons: [],
+        landmarks: [],
+      });
+      return context;
+    };
+    const input = {
+      url: "http://localhost/",
+      budgets: {
+        maxStates: 40,
+        maxDurationMs: 90_000,
+        maxCalls: 40,
+        maxTurns: 8,
+      },
+    };
+    const first = await explore(
+      input,
+      makeContext() as unknown as Parameters<typeof explore>[1],
+    );
+    const second = await explore(
+      input,
+      makeContext() as unknown as Parameters<typeof explore>[1],
+    );
+    expect(first.capabilityMap).toEqual(second.capabilityMap);
   });
 });
 
@@ -230,7 +372,10 @@ describe("stateSignature determinism", () => {
 
   it("different URLs yield different signatures", () => {
     const snap1 = normalizeSnapshot(homeSnapshot);
-    const snap2 = normalizeSnapshot({ ...homeSnapshot, url: "http://localhost/other" });
+    const snap2 = normalizeSnapshot({
+      ...homeSnapshot,
+      url: "http://localhost/other",
+    });
     expect(stateSignature(snap1)).not.toBe(stateSignature(snap2));
   });
 });

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "packages/critic/src/**/*.ts",
+    "packages/critic/tests/**/*.ts",
+    "packages/planner/src/**/*.ts",
+    "packages/planner/tests/**/*.ts",
+    "packages/compile/src/**/*.ts",
+    "packages/compile/tests/**/*.ts"
+  ]
+}

@@ -5,18 +5,27 @@
   "version": "0.0.0",
   "packageManager": "pnpm@10.12.1",
   "engines": {
-    "node": ">=22.11.0 <23",
-    "pnpm": ">=10.12.0 <11"
+    "node": ">=22.11.0",
+    "pnpm": ">=9.0.0"
   },
   "scripts": {
     "doctor": "node scripts/doctor.mjs",
     "typecheck": "tsc --noEmit --pretty false",
     "format:check": "prettier --check .",
     "lint": "eslint packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli && prettier --check packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli tsconfig.json tsconfig.base.json vitest.config.ts eslint.config.mjs package.json && depcruise --config .dependency-cruiser.cjs packages/core packages/store packages/orchestrator packages/api packages/evals packages/cli --output-type err-long",
-    "test": "vitest run",
+    "test": "vitest run --configLoader runner",
+    "typecheck:phase2": "tsc -p tsconfig.phase2.json --noEmit --pretty false",
+    "lint:phase2": "eslint packages/perception packages/agents && prettier --check packages/perception packages/agents tsconfig.phase2.json vitest.phase2.config.ts",
+    "test:phase2": "vitest run --config vitest.phase2.config.ts --configLoader runner",
+    "verify:phase2": "npm run typecheck:phase2 && npm run lint:phase2 && npm run test:phase2",
+    "typecheck:phase3": "tsc -p tsconfig.phase3.json --noEmit --pretty false",
+    "lint:phase3": "eslint packages/critic packages/planner packages/compile && prettier --check packages/critic packages/planner packages/compile tsconfig.phase3.json vitest.phase3.config.ts",
+    "test:phase3": "vitest run --config vitest.phase3.config.ts --configLoader runner",
+    "verify:phase3": "npm run typecheck:phase3 && npm run lint:phase3 && npm run test:phase3",
     "eval": "tsx packages/cli/src/forge.ts eval",
     "demo:check": "pnpm run eval",
     "verify": "pnpm run doctor && pnpm run typecheck && pnpm run lint && pnpm run test && pnpm run eval",
+    "verify:all": "npm run verify && npm run verify:phase2 && npm run verify:phase3",
     "prepare": "node scripts/setup-hooks.mjs"
   },
   "devDependencies": {

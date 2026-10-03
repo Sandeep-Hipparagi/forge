@@ -1,6 +1,21 @@
-import { chromium, Browser, BrowserContext, Page } from "playwright";
-import { createBrowserTools, type BrowserToolContext, type BrowserTools } from "./browser-tools.js";
-import { explore, type ExplorerInput, type ExplorerOutput } from "@forge/perception";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright";
+import {
+  createBrowserTools,
+  type BrowserToolContext,
+} from "./browser-tools.js";
+import {
+  explore,
+  type AgentContext as ExplorerContext,
+  type ExplorerInput,
+  type ExplorerOutput,
+  type AccessibilitySnapshot,
+  type DomFacts,
+} from "@forge/perception";
 
 export interface AgentContext {
   browser: Browser;
@@ -9,62 +24,95 @@ export interface AgentContext {
   storageStatePath?: string;
 }
 
-export async function runExplorerAgent(input: ExplorerInput): Promise<ExplorerOutput> {
+const emptySnapshot = (): AccessibilitySnapshot => ({
+  url: "about:blank",
+  title: "",
+  timestamp: "1970-01-01T00:00:00.000Z",
+  viewport: { width: 1440, height: 900, deviceScaleFactor: 1 },
+  nodes: [],
+  metadata: { interactivesCount: 0, interactivesDropped: 0 },
+});
+
+const emptyDomFacts = (): DomFacts => ({
+  inputs: [],
+  forms: [],
+  buttons: [],
+  landmarks: [],
+});
+
+function makeExplorerContext(toolCtx: BrowserToolContext): ExplorerContext {
+  const tools = createBrowserTools(toolCtx);
+  return {
+    navigate: async (url: string) => {
+      await tools.navigate({
+        url,
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+    },
+    click: async (ref: string) => {
+      const result = await tools.click({
+        selector: ref,
+        timeout: 5000,
+        force: false,
+      });
+      return result.ok
+        ? { ok: true, action: result.data.action }
+        : { ok: false, action: "click", error: result.error };
+    },
+    fill: async (ref: string, value: string) => {
+      const result = await tools.fill({ selector: ref, value, timeout: 5000 });
+      return result.ok ? { ok: true } : { ok: false, error: result.error };
+    },
+    select: async (ref: string, value: string) => {
+      const result = await tools.select({
+        selector: ref,
+        value,
+        timeout: 5000,
+      });
+      return result.ok ? { ok: true } : { ok: false, error: result.error };
+    },
+    back: async () => {
+      await tools.goBack({});
+    },
+    snapshot: async () => {
+      const result = await tools.snapshot({});
+      return result.ok && result.data
+        ? (result.data as AccessibilitySnapshot)
+        : emptySnapshot();
+    },
+    getDomFacts: async () => {
+      const result = await tools.getDomFacts({});
+      return result.ok && result.data
+        ? (result.data as DomFacts)
+        : emptyDomFacts();
+    },
+    getStorageState: async () => {
+      const result = await tools.getStorageState({});
+      return result.ok ? result.data.state : "{}";
+    },
+    setStorageState: async (state: string) => {
+      await tools.setStorageState({ path: state });
+    },
+    now: () => performance.timeOrigin + performance.now(),
+    sleep: (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
+  };
+}
+
+export async function runExplorerAgent(
+  input: ExplorerInput,
+): Promise<ExplorerOutput> {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
-
   try {
-    const toolCtx: BrowserToolContext = { browser, context, page, storageStatePath: input.credentials ? "/tmp/storage.json" : undefined };
-    const tools = createBrowserTools(toolCtx);
-
-    const agentCtx = {
-      navigate: async (url: string) => {
-        const result = await tools.navigate({ url });
-        if (!result.ok) throw new Error(result.error);
-      },
-      click: async (ref: string) => {
-        const result = await tools.click({ selector: ref });
-        return result;
-      },
-      fill: async (ref: string, value: string) => {
-        const result = await tools.fill({ selector: ref, value });
-        return result;
-      },
-      select: async (ref: string, value: string) => {
-        const result = await tools.select({ selector: ref, value });
-        return result;
-      },
-      back: async () => {
-        const result = await tools.goBack({});
-        return result;
-      },
-      snapshot: async () => {
-        const result = await tools.snapshot({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data;
-      },
-      getDomFacts: async () => {
-        const result = await tools.getDomFacts({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data;
-      },
-      getStorageState: async () => {
-        const result = await tools.getStorageState({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data.state;
-      },
-      setStorageState: async (state: string) => {
-        const result = await tools.setStorageState({ path: state });
-        return result;
-      },
-    };
-
-    const result = await explore(input, agentCtx);
-    return result;
+    return await explore(
+      input,
+      makeExplorerContext({ browser, context, page }),
+    );
   } finally {
     await browser.close();
   }
@@ -72,62 +120,18 @@ export async function runExplorerAgent(input: ExplorerInput): Promise<ExplorerOu
 
 export async function runExplorerAgentWithBrowser(
   input: ExplorerInput,
-  browser: Browser
+  browser: Browser,
 ): Promise<ExplorerOutput> {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
-
   try {
-    const toolCtx: BrowserToolContext = { browser, context, page };
-    const tools = createBrowserTools(toolCtx);
-
-    const agentCtx = {
-      navigate: async (url: string) => {
-        const result = await tools.navigate({ url });
-        if (!result.ok) throw new Error(result.error);
-      },
-      click: async (ref: string) => {
-        const result = await tools.click({ selector: ref });
-        return result;
-      },
-      fill: async (ref: string, value: string) => {
-        const result = await tools.fill({ selector: ref, value });
-        return result;
-      },
-      select: async (ref: string, value: string) => {
-        const result = await tools.select({ selector: ref, value });
-        return result;
-      },
-      back: async () => {
-        const result = await tools.goBack({});
-        return result;
-      },
-      snapshot: async () => {
-        const result = await tools.snapshot({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data;
-      },
-      getDomFacts: async () => {
-        const result = await tools.getDomFacts({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data;
-      },
-      getStorageState: async () => {
-        const result = await tools.getStorageState({});
-        if (!result.ok) throw new Error(result.error);
-        return result.data.state;
-      },
-      setStorageState: async (state: string) => {
-        const result = await tools.setStorageState({ path: state });
-        return result;
-      },
-    };
-
-    const result = await explore(input, agentCtx);
-    return result;
+    return await explore(
+      input,
+      makeExplorerContext({ browser, context, page }),
+    );
   } finally {
     await context.close();
   }

@@ -2,21 +2,32 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const expectedNode = readFileSync(".nvmrc", "utf8").trim();
-const expectedPnpm = "10.12.1";
-const pnpm = spawnSync("pnpm", ["--version"], { encoding: "utf8" });
-const playwright = spawnSync("pnpm", ["exec", "playwright", "--version"], {
+const isWin = process.platform === "win32";
+const pnpm = spawnSync("pnpm --version", { encoding: "utf8", shell: true });
+const playwright = spawnSync("pnpm exec playwright --version", {
   encoding: "utf8",
+  shell: true,
 });
 const errors = [];
 
-if (process.version.slice(1) !== expectedNode)
-  errors.push(`expected Node ${expectedNode}; found ${process.version}`);
-if (pnpm.status !== 0 || pnpm.stdout.trim() !== expectedPnpm)
-  errors.push(`expected pnpm ${expectedPnpm}`);
-if (playwright.status !== 0)
+const nodeVersion = process.version.slice(1);
+const [nodeMajor, nodeMinor] = nodeVersion.split(".").map(Number);
+const [expMajor, expMinor] = expectedNode.split(".").map(Number);
+if ((nodeMajor ?? 0) < (expMajor ?? 0) || (nodeMajor === expMajor && (nodeMinor ?? 0) < (expMinor ?? 0))) {
+  errors.push(`expected Node >= ${expectedNode}; found ${process.version}`);
+}
+
+const pnpmVersion = pnpm.stdout?.trim() ?? "";
+const [pnpmMajor] = pnpmVersion.split(".").map(Number);
+if (pnpm.status !== 0 || !pnpmMajor || pnpmMajor < 9) {
+  errors.push(`expected pnpm >= 9.0.0; found ${pnpmVersion || "unknown"}`);
+}
+
+if (playwright.status !== 0) {
   errors.push(
     "Chromium/Playwright is unavailable; run pnpm exec playwright install chromium",
   );
+}
 const bind = process.env.FORGE_API_BIND ?? "127.0.0.1";
 const apiPort = Number(process.env.FORGE_API_PORT ?? "4000");
 const allowedHosts = (

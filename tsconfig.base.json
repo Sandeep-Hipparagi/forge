@@ -17,7 +17,12 @@
       "@forge/store": ["packages/store/src/index.ts"],
       "@forge/orchestrator": ["packages/orchestrator/src/index.ts"],
       "@forge/api": ["packages/api/src/index.ts"],
-      "@forge/evals/*": ["packages/evals/*"]
+      "@forge/evals/*": ["packages/evals/*"],
+      "@forge/perception": ["packages/perception/src/index.ts"],
+      "@forge/agents": ["packages/agents/src/index.ts"],
+      "@forge/planner": ["packages/planner/src/index.ts"],
+      "@forge/critic": ["packages/critic/src/index.ts"],
+      "@forge/compile": ["packages/compile/src/index.ts"]
     },
     "types": ["node", "vitest/globals"]
   }

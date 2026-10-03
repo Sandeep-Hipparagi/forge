@@ -28,6 +28,8 @@ export interface AccessibilitySnapshot {
   metadata: {
     interactivesCount: number;
     interactivesDropped: number;
+    snapshotBytes?: number;
+    snapshotTruncated?: boolean;
   };
 }
 
@@ -75,7 +77,18 @@ export interface Affordance {
   ref: string;
   role: string;
   accessibleName: string | null;
-  kind: "button" | "link" | "textbox" | "checkbox" | "radio" | "select" | "tab" | "menuitem" | "form" | "upload" | "other";
+  kind:
+    | "button"
+    | "link"
+    | "textbox"
+    | "checkbox"
+    | "radio"
+    | "select"
+    | "tab"
+    | "menuitem"
+    | "form"
+    | "upload"
+    | "other";
   enabled: boolean;
   destructive: boolean;
   observedNotExercised: boolean;
@@ -146,6 +159,10 @@ export interface CapabilityMap {
     discovered: number;
     explored: number;
     haltReason: "EXHAUSTED" | "STATE_BUDGET" | "TIME_BUDGET" | "CALL_BUDGET";
+    domDivergence?: {
+      snapshotInteractiveCount: number;
+      domInteractiveCount: number;
+    };
   };
 }
 
